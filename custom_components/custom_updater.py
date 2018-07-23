@@ -15,17 +15,15 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '1.0.0'
+__version__ = '1.1.0'
 
 _LOGGER = logging.getLogger(__name__)
 
 CONF_TRACK = 'track'
 
 DOMAIN = 'custom_updater'
-CARDS_DOMAIN = 'custom_cards'
-CARD_DATA = 'custom_CARD_DATA'
-COMPONENTS_DOMAIN = 'custom_components'
-COMPONENT_DATA = 'custom_COMPONENT_DATA'
+CARD_DATA = 'custom_card_data'
+COMPONENT_DATA = 'custom_component_data'
 INTERVAL = timedelta(days=1)
 
 ATTR_CARD = 'card'
@@ -48,40 +46,51 @@ def setup(hass, config):
                  ' them here: https://github.com/custom-components/custom_updater', __version__)
 
     ha_conf_dir = str(hass.config.path())
+    card_controller = CustomCards(hass, ha_conf_dir)
+    components_controller = CustomComponents(hass, ha_conf_dir)
 
-    if not conf_track or 'cards' in conf_track:
-        _LOGGER.debug('Setting up services for cards')
-        card_controller = CustomCards(hass, ha_conf_dir)
+    def check_all_service(call):
+        """Set up service for manual trigger."""
+        if not conf_track:
+            card_controller.cache_versions(call)
+            components_controller.cache_versions(call)
+        elif 'cards' in conf_track and 'components' in conf_track:
+            card_controller.cache_versions(call)
+            components_controller.cache_versions(call)
+        elif 'cards' in conf_track:
+            card_controller.cache_versions(call)
+        elif 'components' in conf_track:
+            components_controller.cache_versions(call)
 
-        def update_all_cards_service(call):
-            """Set up service for manual trigger."""
+    def update_all_service(call):
+        """Set up service for manual trigger."""
+        if not conf_track:
             card_controller.update_all()
-
-        def update_single_card_service(call):
-            """Set up service for manual trigger."""
-            card_controller.upgrade_single(call.data.get(ATTR_CARD))
-
-        track_time_interval(hass, card_controller.cache_versions, INTERVAL)
-        hass.services.register(CARDS_DOMAIN, 'check_all', card_controller.cache_versions)
-        hass.services.register(CARDS_DOMAIN, 'update_all', update_all_cards_service)
-        hass.services.register(CARDS_DOMAIN, 'update_single', update_single_card_service)
-
-    if not conf_track or 'components' in conf_track:
-        _LOGGER.debug('Setting up services for components')
-        components_controller = CustomComponents(hass, ha_conf_dir)
-
-        def update_all_components_service(call):
-            """Set up service for manual trigger."""
+            components_controller.update_all()
+        elif 'cards' in conf_track and 'components' in conf_track:
+            card_controller.update_all()
+            components_controller.update_all()
+        elif 'cards' in conf_track:
+            card_controller.update_all()
+        elif 'components' in conf_track:
             components_controller.update_all()
 
+    if not conf_track or 'cards' in conf_track:
+        def upgrade_card_service(call):
+            """Set up service for manual trigger."""
+            card_controller.upgrade_single(call.data.get(ATTR_CARD))
+        hass.services.register(DOMAIN, 'upgrade_single_card', upgrade_card_service)
+
+    if not conf_track or 'components' in conf_track:
         def upgrade_component_service(call):
             """Set up service for manual trigger."""
             components_controller.upgrade_single(call.data.get(ATTR_COMPONENT))
+        hass.services.register(DOMAIN, 'upgrade_single_component', upgrade_component_service)
 
-        track_time_interval(hass, components_controller.cache_versions, INTERVAL)
-        hass.services.register(COMPONENTS_DOMAIN, 'check_all', components_controller.cache_versions)
-        hass.services.register(COMPONENTS_DOMAIN, 'update_all', update_all_components_service)
-        hass.services.register(COMPONENTS_DOMAIN, 'update_single', upgrade_component_service)
+    track_time_interval(hass, card_controller.cache_versions, INTERVAL)
+    track_time_interval(hass, components_controller.cache_versions, INTERVAL)
+    hass.services.register(DOMAIN, 'check_all', check_all_service)
+    hass.services.register(DOMAIN, 'update_all', update_all_service)
     return True
 
 
@@ -114,7 +123,7 @@ class CustomCards:
                         "repo": remoteinfo[3],
                         "change_log": remoteinfo[4],
                     }
-                    self.hass.data[CARD_DATA]['domain'] = CARDS_DOMAIN
+                    self.hass.data[CARD_DATA]['domain'] = DOMAIN
                     self.hass.data[CARD_DATA]['repo'] = '#'
             self.hass.states.set('sensor.custom_card_tracker', time.time(), self.hass.data[CARD_DATA])
 
@@ -249,7 +258,7 @@ class CustomComponents:
                         "repo": remoteinfo[4],
                         "change_log": remoteinfo[5],
                     }
-                    self.hass.data[COMPONENT_DATA]['domain'] = COMPONENTS_DOMAIN
+                    self.hass.data[COMPONENT_DATA]['domain'] = DOMAIN
                     self.hass.data[COMPONENT_DATA]['repo'] = '#'
             self.hass.states.set('sensor.custom_component_tracker', time.time(), self.hass.data[COMPONENT_DATA])
 
