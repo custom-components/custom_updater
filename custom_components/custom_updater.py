@@ -15,7 +15,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '1.1.0'
+__version__ = '1.2.0'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,33 +46,25 @@ def setup(hass, config):
                  ' them here: https://github.com/custom-components/custom_updater', __version__)
 
     ha_conf_dir = str(hass.config.path())
-    card_controller = CustomCards(hass, ha_conf_dir)
-    components_controller = CustomComponents(hass, ha_conf_dir)
+    if not conf_track or 'cards' in conf_track:
+        card_controller = CustomCards(hass, ha_conf_dir)
+        track_time_interval(hass, card_controller.cache_versions, INTERVAL)
+    if not conf_track or 'components' in conf_track:
+        components_controller = CustomComponents(hass, ha_conf_dir)
+        track_time_interval(hass, components_controller.cache_versions, INTERVAL)
 
     def check_all_service(call):
         """Set up service for manual trigger."""
-        if not conf_track:
+        if not conf_track or 'cards' in conf_track:
             card_controller.cache_versions(call)
-            components_controller.cache_versions(call)
-        elif 'cards' in conf_track and 'components' in conf_track:
-            card_controller.cache_versions(call)
-            components_controller.cache_versions(call)
-        elif 'cards' in conf_track:
-            card_controller.cache_versions(call)
-        elif 'components' in conf_track:
+        if not conf_track or 'components' in conf_track:
             components_controller.cache_versions(call)
 
     def update_all_service(call):
         """Set up service for manual trigger."""
-        if not conf_track:
+        if not conf_track or 'cards' in conf_track:
             card_controller.update_all()
-            components_controller.update_all()
-        elif 'cards' in conf_track and 'components' in conf_track:
-            card_controller.update_all()
-            components_controller.update_all()
-        elif 'cards' in conf_track:
-            card_controller.update_all()
-        elif 'components' in conf_track:
+        if not conf_track or 'components' in conf_track:
             components_controller.update_all()
 
     if not conf_track or 'cards' in conf_track:
@@ -87,8 +79,6 @@ def setup(hass, config):
             components_controller.upgrade_single(call.data.get(ATTR_COMPONENT))
         hass.services.register(DOMAIN, 'upgrade_single_component', upgrade_component_service)
 
-    track_time_interval(hass, card_controller.cache_versions, INTERVAL)
-    track_time_interval(hass, components_controller.cache_versions, INTERVAL)
     hass.services.register(DOMAIN, 'check_all', check_all_service)
     hass.services.register(DOMAIN, 'update_all', update_all_service)
     return True
