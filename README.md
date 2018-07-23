@@ -1,7 +1,7 @@
 # Custom Updater
 
 A component which allows you to track and update your custom cards and components.\
-**To get the best use for this component, use it together with the [tracker-card](https://github.com/ciotlosm/custom-lovelace/tree/master/tracker-card)**
+**To get the best use for this component, use it together with the [tracker-card](https://github.com/custom-cards/tracker-card)**
 
 ## ⚠️ This will **ONLY** work if your components and/or cards/elements is from
 
