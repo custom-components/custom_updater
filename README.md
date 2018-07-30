@@ -57,3 +57,46 @@ logger:
   logs:
     custom_components.custom_updater: debug
 ```
+
+***
+
+## Services
+
+If you are not using the Lovelace UI or **our recommended [tracker-card](https://github.com/custom-cards/tracker-card)** for it,\
+you can still update custom-cards and -components by calling services from dev-service.
+
+### Check for updates
+
+Service: `custom_updater.check_all`
+
+### Update all
+
+Service: `custom_updater.update_all`
+
+### Update single card
+
+You can update a single card by passing which card you want to update to the `custom_updater.upgrade_single_card` service.
+
+Service: `custom_updater.upgrade_single_card`
+
+Service Data:
+
+```json
+{
+  "card":"monster-card"
+}
+```
+
+### Update single component
+
+You can update a single component by passing which component you want to update to the  `custom_updater.upgrade_single_component` service.
+
+Service: `custom_updater.upgrade_single_component`
+
+Service Data:
+
+```json
+{
+  "component":"sensor.authenticated"
+}
+```
