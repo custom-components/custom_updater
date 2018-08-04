@@ -43,7 +43,8 @@ custom_updater:
 
 | key | default | required | description
 | --- | --- | --- | ---
-| **track** | `cards`, `components` | no | A list of what you want this component to track, possible values are `cards`/`components`
+| **track** | both | no | A list of what you want this component to track, possible values are `cards`/`components`
+| **hide_sensor** | Flase | no | Option to set the sensors to be `hidden`, possible values are `True` / `False`
 
 ***
 
