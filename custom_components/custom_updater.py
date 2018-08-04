@@ -15,7 +15,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '1.2.0'
+__version__ = '1.2.1'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,7 +113,7 @@ class CustomCards:
                         "repo": remoteinfo[3],
                         "change_log": remoteinfo[4],
                     }
-                    self.hass.data[CARD_DATA]['domain'] = DOMAIN
+                    self.hass.data[CARD_DATA]['domain'] = 'custom_cards'
                     self.hass.data[CARD_DATA]['repo'] = '#'
             self.hass.states.set('sensor.custom_card_tracker', time.time(), self.hass.data[CARD_DATA])
 
@@ -248,7 +248,7 @@ class CustomComponents:
                         "repo": remoteinfo[4],
                         "change_log": remoteinfo[5],
                     }
-                    self.hass.data[COMPONENT_DATA]['domain'] = DOMAIN
+                    self.hass.data[COMPONENT_DATA]['domain'] = 'custom_components'
                     self.hass.data[COMPONENT_DATA]['repo'] = '#'
             self.hass.states.set('sensor.custom_component_tracker', time.time(), self.hass.data[COMPONENT_DATA])
 
