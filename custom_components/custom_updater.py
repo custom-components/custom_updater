@@ -15,7 +15,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '1.4.0'
+__version__ = '1.4.1'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -234,13 +234,20 @@ class CustomCards:
         cardconfig = ''
         if self._lovelace_gen:
             conf_file = self.ha_conf_dir + '/lovelace/main.yaml'
+            with open(conf_file, 'r') as local:
+                for line in local.readlines():
+                    if card + '.js' in line:
+                        cardconfig = line
+                        break
+            local.close()
         else:
             conf_file = self.ha_conf_dir + '/ui-lovelace.yaml'
-        with open(conf_file, 'r') as local:
-            for line in local.readlines():
-                if card + '.js' in line:
-                    cardconfig = line
-                    break
+            with open(conf_file, 'r') as local:
+                for line in local.readlines():
+                    if '/' + card + '.js' in line:
+                        cardconfig = line
+                        break
+            local.close()
         if '=' in cardconfig:
             localversion = cardconfig.split('=')[1].split('\n')[0]
             _LOGGER.debug('Local version of %s is %s', card, localversion)
