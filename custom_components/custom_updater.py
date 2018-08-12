@@ -308,7 +308,6 @@ class CustomComponents(object):
         for name in self.hass.data[COMPONENT_DATA]:
             if name not in ('domain', 'repo', 'hidden'):
                 try:
-                    _LOGGER.debug('Trying to upgrade %s, no update available', name)
                     if self.hass.data[COMPONENT_DATA][name]['has_update'] and not self.hass.data[COMPONENT_DATA][name]['not_local']:
                         self.upgrade_single(name)
                 except KeyError:
