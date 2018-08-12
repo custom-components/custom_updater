@@ -8,19 +8,21 @@ https://github.com/custom-components/custom_updater
 import logging
 import os
 import subprocess
-from datetime import timedelta
 import time
+from datetime import timedelta
 import requests
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '1.4.1'
+__version__ = '2.0.0'
 
 _LOGGER = logging.getLogger(__name__)
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
+CONF_CARD_CONFIG_URLS = 'card_urls'
+CONF_COMPONENT_CONFIG_URLS = 'component_urls'
 
 DOMAIN = 'custom_updater'
 CARD_DATA = 'custom_card_data'
@@ -32,36 +34,44 @@ ATTR_COMPONENT = 'component'
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
-        vol.Required(CONF_TRACK, default=None):
+        vol.Optional(CONF_TRACK, default=['cards', 'components']):
             vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_HIDE_SENSOR, default=False): cv.boolean,
+        vol.Optional(CONF_CARD_CONFIG_URLS, default=[]):
+            vol.All(cv.ensure_list, [cv.url]),
+        vol.Optional(CONF_COMPONENT_CONFIG_URLS, default=[]):
+            vol.All(cv.ensure_list, [cv.url]),
     })
 }, extra=vol.ALLOW_EXTRA)
 
-CARDS_JSON = 'https://raw.githubusercontent.com/custom-cards/information/master/repos.json'
-COMPS_JSON = 'https://raw.githubusercontent.com/custom-components/information/master/repos.json'
+DEFAULT_REMOTE_CARD_CONFIG_URL = 'https://raw.githubusercontent.com/custom-cards/information/master/repos.json'
+DEFAULT_REMOTE_COMPONENT_CONFIG_URL = 'https://raw.githubusercontent.com/custom-components/information/master/repos.json'
+
 
 def setup(hass, config):
     """Set up this component."""
     conf_track = config[DOMAIN][CONF_TRACK]
     conf_hide_sensor = config[DOMAIN][CONF_HIDE_SENSOR]
+    conf_card_urls = [DEFAULT_REMOTE_CARD_CONFIG_URL] + config[DOMAIN][CONF_CARD_CONFIG_URLS]
+    conf_component_urls = [DEFAULT_REMOTE_COMPONENT_CONFIG_URL] + config[DOMAIN][CONF_COMPONENT_CONFIG_URLS]
+
     _LOGGER.info('version %s is starting, if you have ANY issues with this, please report'
                  ' them here: https://github.com/custom-components/custom_updater', __version__)
 
     ha_conf_dir = str(hass.config.path())
-    if not conf_track or 'cards' in conf_track:
-        card_controller = CustomCards(hass, ha_conf_dir, conf_hide_sensor)
+    if 'cards' in conf_track:
+        card_controller = CustomCards(hass, ha_conf_dir, conf_hide_sensor, conf_card_urls)
         track_time_interval(hass, card_controller.cache_versions, INTERVAL)
-    if not conf_track or 'components' in conf_track:
-        components_controller = CustomComponents(hass, ha_conf_dir, conf_hide_sensor)
+    if 'components' in conf_track:
+        components_controller = CustomComponents(hass, ha_conf_dir, conf_hide_sensor, conf_component_urls)
         track_time_interval(hass, components_controller.cache_versions, INTERVAL)
 
     def check_all_service(call):
         """Set up service for manual trigger."""
         if not conf_track or 'cards' in conf_track:
-            card_controller.cache_versions(call)
+            card_controller.cache_versions()
         if not conf_track or 'components' in conf_track:
-            components_controller.cache_versions(call)
+            components_controller.cache_versions()
 
     def update_all_service(call):
         """Set up service for manual trigger."""
@@ -87,17 +97,18 @@ def setup(hass, config):
     return True
 
 
-class CustomCards:
+class CustomCards(object):
     """Custom cards controller."""
-    def __init__(self, hass, ha_conf_dir, conf_hide_sensor):
+    def __init__(self, hass, ha_conf_dir, conf_hide_sensor, conf_card_urls):
         self.hass = hass
-        self.cards = None
-        self._lovelace_gen = False
         self._hide_sensor = conf_hide_sensor
         self.ha_conf_dir = ha_conf_dir
+        self.conf_card_urls = conf_card_urls
+        self.cards = None
+        self._lovelace_gen = False
         self.hass.data[CARD_DATA] = {}
         self.lovelace_gen_check()
-        self.cache_versions('now')
+        self.cache_versions()
 
     def lovelace_gen_check(self):
         """Check if lovelace-gen is in use"""
@@ -113,25 +124,24 @@ class CustomCards:
         else:
             self._lovelace_gen = False
 
-    def cache_versions(self, call):
+    def cache_versions(self):
         """Cache"""
-        self.cards = self.get_cards()
+        self.cards = self.get_all_remote_info()
         self.hass.data[CARD_DATA] = {}
         if self.cards:
-            for card in self.cards:
-                remoteinfo = self.get_remote_info(card)
-                remoteversion = remoteinfo[1]
-                localversion = self.get_local_version(remoteinfo[0])
-                if localversion:
-                    has_update = (remoteversion != False and remoteversion != localversion)
-                    not_local = (remoteversion != False and not localversion)
-                    self.hass.data[CARD_DATA][card] = {
-                        "local": localversion,
-                        "remote": remoteversion,
+            for name, card in self.cards.items():
+                remote_version = card[1]
+                local_version = self.get_local_version(card[0])
+                if local_version:
+                    has_update = (remote_version != False and remote_version != local_version and remote_version != '')
+                    not_local = (remote_version != False and not local_version)
+                    self.hass.data[CARD_DATA][name] = {
+                        "local": local_version,
+                        "remote": remote_version,
                         "has_update": has_update,
                         "not_local": not_local,
-                        "repo": remoteinfo[3],
-                        "change_log": remoteinfo[4],
+                        "repo": card[3],
+                        "change_log": card[4],
                     }
                     self.hass.data[CARD_DATA]['domain'] = 'custom_cards'
                     self.hass.data[CARD_DATA]['repo'] = '#'
@@ -141,55 +151,55 @@ class CustomCards:
 
     def update_all(self):
         """Update all cards"""
-        for card in self.hass.data[CARD_DATA]:
-            if card not in ('domain', 'repo', 'hidden'):
+        for name in self.hass.data[CARD_DATA]:
+            if name not in ('domain', 'repo', 'hidden'):
                 try:
-                    if self.hass.data[CARD_DATA][card]['has_update'] and not self.hass.data[CARD_DATA][card]['not_local']:
-                        self.upgrade_single(card)
-                except:
-                    _LOGGER.debug('Skipping upgrade for %s, no update available', card)
+                    if self.hass.data[CARD_DATA][name]['has_update'] and not self.hass.data[CARD_DATA][name]['not_local']:
+                        self.upgrade_single(name)
+                except KeyError:
+                    _LOGGER.debug('Skipping upgrade for %s, no update available', name)
 
-    def upgrade_single(self, card):
+    def upgrade_single(self, name):
         """Update one components"""
-        _LOGGER.debug('Starting upgrade for "%s".', card)
-        if card in self.hass.data[CARD_DATA]:
-            if self.hass.data[CARD_DATA][card]['has_update']:
-                remoteinfo = self.get_remote_info(card)
-                remotefile = remoteinfo[2]
-                localfile = self.ha_conf_dir + self.get_card_dir(card) + card + '.js'
-                test_remotefile = requests.get(remotefile)
-                if test_remotefile.status_code == 200:
-                    with open(localfile, 'wb') as card_file:
-                        card_file.write(test_remotefile.content)
+        _LOGGER.debug('Starting upgrade for "%s".', name)
+        if name in self.hass.data[CARD_DATA]:
+            if self.hass.data[CARD_DATA][name]['has_update']:
+                remote_info = self.get_all_remote_info()[name]
+                remote_file = remote_info[2]
+                local_file = self.ha_conf_dir + self.get_card_dir(name) + name + '.js'
+                test_remote_file = requests.get(remote_file)
+                if test_remote_file.status_code == 200:
+                    with open(local_file, 'wb') as card_file:
+                        card_file.write(test_remote_file.content)
                     card_file.close()
-                    self.update_resource_version(card)
+                    self.update_resource_version(name)
                     _LOGGER.info('Upgrade of %s from version %s to version %s complete',
-                                 card, self.hass.data[CARD_DATA][card]['local'],
-                                 self.hass.data[CARD_DATA][card]['remote'])
-                self.hass.data[CARD_DATA][card]['local'] = self.hass.data[CARD_DATA][card]['remote']
-                self.hass.data[CARD_DATA][card]['has_update'] = False
-                self.hass.data[CARD_DATA][card]['not_local'] = False
+                                 name, self.hass.data[CARD_DATA][name]['local'],
+                                 self.hass.data[CARD_DATA][name]['remote'])
+                self.hass.data[CARD_DATA][name]['local'] = self.hass.data[CARD_DATA][name]['remote']
+                self.hass.data[CARD_DATA][name]['has_update'] = False
+                self.hass.data[CARD_DATA][name]['not_local'] = False
                 self.hass.states.set('sensor.custom_card_tracker', time.time(), self.hass.data[CARD_DATA])
             else:
-                _LOGGER.debug('Skipping upgrade for %s, no update available', card)
+                _LOGGER.debug('Skipping upgrade for %s, no update available', name)
         else:
-            _LOGGER.error('Upgrade failed, "%s" is not a valid card', card)
+            _LOGGER.error('Upgrade failed, "%s" is not a valid card', name)
 
-    def update_resource_version(self, card):
+    def update_resource_version(self, name):
         """Updating the ui-lovelace file"""
-        localversion = self.hass.data[CARD_DATA][card]['local']
-        remoteversion = self.hass.data[CARD_DATA][card]['remote']
-        _LOGGER.debug('Updating configuration for %s', card)
-        _LOGGER.debug('Upgrading card in config from version %s to version %s', localversion, remoteversion)
+        local_version = self.hass.data[CARD_DATA][name]['local']
+        remote_version = self.hass.data[CARD_DATA][name]['remote']
+        _LOGGER.debug('Updating configuration for %s', name)
+        _LOGGER.debug('Upgrading card in config from version %s to version %s', local_version, remote_version)
         if self._lovelace_gen:
             conf_file = self.ha_conf_dir + '/lovelace/main.yaml'
-            sedcmd = 's/'+ card + '.js?v=' + str(localversion) + '/'+ card + '.js?v=' + str(remoteversion) + '/'
+            sedcmd = 's/' + name + '.js?v=' + str(local_version) + '/' + name + '.js?v=' + str(remote_version) + '/'
         else:
             conf_file = self.ha_conf_dir + '/ui-lovelace.yaml'
-            sedcmd = 's/\/'+ card + '.js?v=' + str(localversion) + '/\/'+ card + '.js?v=' + str(remoteversion) + '/'
+            sedcmd = 's/\/' + name + '.js?v=' + str(local_version) + '/\/' + name + '.js?v=' + str(remote_version) + '/'
         subprocess.call(["sed", "-i", "-e", sedcmd, conf_file])
 
-    def get_card_dir(self, card):
+    def get_card_dir(self, name):
         """Get card dir"""
         if self._lovelace_gen:
             conf_file = self.ha_conf_dir + '/lovelace/main.yaml'
@@ -198,104 +208,94 @@ class CustomCards:
         with open(conf_file, 'r') as local:
             for line in local.readlines():
                 if self._lovelace_gen:
-                    if card + '.js' in line:
-                        card_dir = '/lovelace/' + line.split('!resource ')[1].split(card + '.js')[0]
-                        _LOGGER.debug('Found path "%s" for card "%s"', card_dir, card)
+                    if name + '.js' in line:
+                        card_dir = '/lovelace/' + line.split('!resource ')[1].split(name + '.js')[0]
+                        _LOGGER.debug('Found path "%s" for card "%s"', card_dir, name)
                         break
                 else:
-                    if '/' + card + '.js' in line:
-                        card_dir = line.split(': ')[1].split(card + '.js')[0].replace("local", "www")
-                        _LOGGER.debug('Found path "%s" for card "%s"', card_dir, card)
+                    if '/' + name + '.js' in line:
+                        card_dir = line.split(': ')[1].split(name + '.js')[0].replace("local", "www")
+                        _LOGGER.debug('Found path "%s" for card "%s"', card_dir, name)
                         break
         return card_dir
 
-    def get_remote_info(self, card):
-        """Return the remote info if any."""
-        response = requests.get(CARDS_JSON)
-        remote_info = [None]
-        if response.status_code == 200:
-            try:
-                remote = response.json()[card]
-                remote_info = [card,
-                               remote['version'],
-                               remote['remote_location'],
-                               remote['visit_repo'],
-                               remote['changelog']
-                              ]
-            except:
-                _LOGGER.debug('Gathering remote info for %s failed...', card)
-                remote = False
-        else:
-            _LOGGER.debug('Could not get remote info for %s', card)
+    def get_all_remote_info(self):
+        """Return all remote info if any."""
+        remote_info = {}
+        for url in self.conf_card_urls:
+            response = requests.get(url)
+            if response.status_code == 200:
+                for name, card in response.json().items():
+                    try:
+                        card = [
+                            name,
+                            card['version'],
+                            card['remote_location'],
+                            card['visit_repo'],
+                            card['changelog']
+                        ]
+                        remote_info[name] = card
+                    except KeyError:
+                        _LOGGER.debug('Gathering remote info for %s failed...', name)
+            else:
+                _LOGGER.debug('Could not get remote info for url %s', DEFAULT_REMOTE_CARD_CONFIG_URL)
         return remote_info
 
-    def get_local_version(self, card):
+    def get_local_version(self, name):
         """Return the local version if any."""
-        cardconfig = ''
+        card_config = ''
         if self._lovelace_gen:
             conf_file = self.ha_conf_dir + '/lovelace/main.yaml'
             with open(conf_file, 'r') as local:
                 for line in local.readlines():
-                    if card + '.js' in line:
-                        cardconfig = line
+                    if name + '.js' in line:
+                        card_config = line
                         break
             local.close()
         else:
             conf_file = self.ha_conf_dir + '/ui-lovelace.yaml'
             with open(conf_file, 'r') as local:
                 for line in local.readlines():
-                    if '/' + card + '.js' in line:
-                        cardconfig = line
+                    if '/' + name + '.js' in line:
+                        card_config = line
                         break
             local.close()
-        if '=' in cardconfig:
-            localversion = cardconfig.split('=')[1].split('\n')[0]
-            _LOGGER.debug('Local version of %s is %s', card, localversion)
-            return localversion
+        if '=' in card_config:
+            local_version = card_config.split('=')[1].split('\n')[0]
+            _LOGGER.debug('Local version of %s is %s', name, local_version)
+            return local_version
         return False
 
-    def get_cards(self):
-        """Get all available cards"""
-        _LOGGER.debug('Gathering all available cards.')
-        cards = []
-        response = requests.get(CARDS_JSON)
-        if response.status_code == 200:
-            for card in response.json():
-                cards.append(card)
-        else:
-            _LOGGER.debug('Could not reach the remote information repo.')
-        return cards
 
-
-class CustomComponents:
+class CustomComponents(object):
     """Custom components controller."""
-    def __init__(self, hass, ha_conf_dir, conf_hide_sensor):
+    def __init__(self, hass, ha_conf_dir, conf_hide_sensor, conf_component_urls):
         self.hass = hass
-        self.components = None
         self._hide_sensor = conf_hide_sensor
         self.ha_conf_dir = ha_conf_dir
+        self.conf_component_urls = conf_component_urls
+        self.components = None
         self.hass.data[COMPONENT_DATA] = {}
-        self.cache_versions('now')
+        self.cache_versions()
 
-    def cache_versions(self, call):
+    def cache_versions(self):
         """Cache"""
-        self.components = self.get_components()
+        self.components = self.get_all_remote_info()
         self.hass.data[COMPONENT_DATA] = {}
         if self.components:
-            for component in self.components:
-                remoteinfo = self.get_remote_info(component)
-                remoteversion = remoteinfo[1]
-                localversion = self.get_local_version(component, remoteinfo[2])
-                if localversion:
-                    has_update = (remoteversion != False and remoteversion != localversion)
-                    not_local = (remoteversion != False and not localversion)
-                    self.hass.data[COMPONENT_DATA][component] = {
-                        "local": localversion,
-                        "remote": remoteversion,
+            for name, component in self.components.items():
+                remote_version = component[1]
+                local_version = self.get_local_version(name, component[2])
+                if local_version:
+                    has_update = (remote_version != False and remote_version != local_version)
+                    not_local = (remote_version != False and not local_version)
+                    self.hass.data[COMPONENT_DATA][name] = {
+                        "local": local_version,
+                        "remote": remote_version,
                         "has_update": has_update,
                         "not_local": not_local,
-                        "repo": remoteinfo[4],
-                        "change_log": remoteinfo[5],
+                        "repo": component[4],
+                        "change_log": component[5],
                     }
                     self.hass.data[COMPONENT_DATA]['domain'] = 'custom_components'
                     self.hass.data[COMPONENT_DATA]['repo'] = '#'
@@ -305,89 +305,80 @@ class CustomComponents:
 
     def update_all(self):
         """Update all components"""
-        for component in self.hass.data[COMPONENT_DATA]:
-            if component not in ('domain', 'repo'):
+        for name in self.hass.data[COMPONENT_DATA]:
+            if name not in ('domain', 'repo', 'hidden'):
                 try:
-                    if self.hass.data[COMPONENT_DATA][component]['has_update'] and not self.hass.data[COMPONENT_DATA][component]['not_local']:
-                        self.upgrade_single(component)
-                except:
-                    _LOGGER.debug('Skipping upgrade for %s, no update available', component)
+                    _LOGGER.debug('Trying to upgrade %s, no update available', name)
+                    if self.hass.data[COMPONENT_DATA][name]['has_update'] and not self.hass.data[COMPONENT_DATA][name]['not_local']:
+                        self.upgrade_single(name)
+                except KeyError:
+                    _LOGGER.debug('Skipping upgrade for %s, no update available', name)
 
-    def upgrade_single(self, component):
+    def upgrade_single(self, name):
         """Update one components"""
-        _LOGGER.debug('Starting upgrade for "%s".', component)
-        if component in self.hass.data[COMPONENT_DATA]:
-            if self.hass.data[COMPONENT_DATA][component]['has_update']:
-                remoteinfo = self.get_remote_info(component)
-                remotefile = remoteinfo[3]
-                localfile = self.ha_conf_dir + remoteinfo[2]
-                test_remotefile = requests.get(remotefile)
-                if test_remotefile.status_code == 200:
-                    with open(localfile, 'wb') as component_file:
-                        component_file.write(test_remotefile.content)
+        _LOGGER.debug('Starting upgrade for "%s".', name)
+        if name in self.hass.data[COMPONENT_DATA]:
+            if self.hass.data[COMPONENT_DATA][name]['has_update']:
+                remote_info = self.get_all_remote_info()[name]
+                remote_file = remote_info[3]
+                local_file = self.ha_conf_dir + remote_info[2]
+                test_remote_file = requests.get(remote_file)
+                if test_remote_file.status_code == 200:
+                    with open(local_file, 'wb') as component_file:
+                        component_file.write(test_remote_file.content)
                     component_file.close()
                     _LOGGER.info('Upgrade of %s from version %s to version %s complete',
-                                 component, self.hass.data[COMPONENT_DATA][component]['local'],
-                                 self.hass.data[COMPONENT_DATA][component]['remote'])
-                self.hass.data[COMPONENT_DATA][component]['local'] = self.hass.data[COMPONENT_DATA][component]['remote']
-                self.hass.data[COMPONENT_DATA][component]['has_update'] = False
-                self.hass.data[COMPONENT_DATA][component]['not_local'] = False
+                                 name, self.hass.data[COMPONENT_DATA][name]['local'],
+                                 self.hass.data[COMPONENT_DATA][name]['remote'])
+                self.hass.data[COMPONENT_DATA][name]['local'] = self.hass.data[COMPONENT_DATA][name]['remote']
+                self.hass.data[COMPONENT_DATA][name]['has_update'] = False
+                self.hass.data[COMPONENT_DATA][name]['not_local'] = False
                 self.hass.states.set('sensor.custom_component_tracker', time.time(), self.hass.data[COMPONENT_DATA])
             else:
-                _LOGGER.debug('Skipping upgrade for %s, no update available', component)
+                _LOGGER.debug('Skipping upgrade for %s, no update available', name)
         else:
-            _LOGGER.error('Upgrade failed, "%s" is not a valid component', component)
+            _LOGGER.error('Upgrade failed, "%s" is not a valid component', name)
 
-    def get_components(self):
-        """Get all available components"""
-        _LOGGER.debug('Gathering all available components.')
-        components = []
-        response = requests.get(COMPS_JSON)
-        if response.status_code == 200:
-            for component in response.json():
-                components.append(component)
-        else:
-            _LOGGER.debug('Could not reach the remote information repo.')
-        return components
-
-    def get_remote_info(self, component):
-        """Return the remote info if any."""
-        response = requests.get(COMPS_JSON)
-        remote_info = [None]
-        if response.status_code == 200:
-            try:
-                remote = response.json()[component]
-                remote_info = [component,
-                               remote['version'],
-                               remote['local_location'],
-                               remote['remote_location'],
-                               remote['visit_repo'],
-                               remote['changelog']
-                              ]
-            except:
-                _LOGGER.debug('Gathering remote info for %s failed...', component)
-                remote = False
-        else:
-            _LOGGER.debug('Could not get remote info for %s', component)
+    def get_all_remote_info(self):
+        """Return all remote info if any."""
+        remote_info = {}
+        for url in self.conf_component_urls:
+            response = requests.get(url)
+            if response.status_code == 200:
+                for name, component in response.json().items():
+                    try:
+                        component = [
+                            name,
+                            component['version'],
+                            component['local_location'],
+                            component['remote_location'],
+                            component['visit_repo'],
+                            component['changelog']
+                        ]
+                        remote_info[name] = component
+                    except KeyError:
+                        _LOGGER.debug('Gathering remote info for %s failed...', name)
+            else:
+                _LOGGER.debug('Could not get remote info for url %s', DEFAULT_REMOTE_COMPONENT_CONFIG_URL)
         return remote_info
 
-    def get_local_version(self, component, local_path):
+    def get_local_version(self, name, local_path):
         """Return the local version if any."""
-        localversion = None
-        componentpath = self.ha_conf_dir + local_path
-        if os.path.isfile(componentpath):
-            with open(componentpath, 'r') as local:
+        local_version = None
+        component_path = self.ha_conf_dir + local_path
+        if os.path.isfile(component_path):
+            with open(component_path, 'r') as local:
                 for line in local.readlines():
                     if '__version__' in line:
-                        localversion = line.split("'")[1]
+                        local_version = line.split("'")[1]
                         break
             local.close()
-            if not localversion:
-                localv = False
-                _LOGGER.debug('Could not get the local version for %s', component)
+            if not local_version:
+                local_v = False
+                _LOGGER.debug('Could not get the local version for %s', name)
             else:
-                localv = localversion
-                _LOGGER.debug('Local version of %s is %s', component, localversion)
+                local_v = local_version
+                _LOGGER.debug('Local version of %s is %s', name, local_version)
         else:
-            localv = False
-        return localv
+            local_v = False
+        return local_v
