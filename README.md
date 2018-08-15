@@ -23,6 +23,7 @@ custom_updater:
 | --- | --- | --- | ---
 | **track** | both | no | A list of what you want this component to track, possible values are `cards`/`components`.
 | **hide_sensor** | False | no | Option to set the sensors to be `hidden`, possible values are `True` / `False`.
+| **show_installable** | False | no | Option show installable components/cards, possible values are `True` / `False`.
 | **card_urls** | Empty | no | A list of additional urls to json with card info.
 | **component_urls** | Empty | no | A list of additional urls to json with component info.
 

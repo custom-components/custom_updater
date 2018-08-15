@@ -15,12 +15,13 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '2.0.0'
+__version__ = '2.1.0'
 
 _LOGGER = logging.getLogger(__name__)
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
+CONF_SHOW_INSTALLABLE = 'show_installable'
 CONF_CARD_CONFIG_URLS = 'card_urls'
 CONF_COMPONENT_CONFIG_URLS = 'component_urls'
 
@@ -31,12 +32,14 @@ INTERVAL = timedelta(days=1)
 
 ATTR_CARD = 'card'
 ATTR_COMPONENT = 'component'
+ATTR_ELEMENT = 'element'
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
         vol.Optional(CONF_TRACK, default=['cards', 'components']):
             vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_HIDE_SENSOR, default=False): cv.boolean,
+        vol.Optional(CONF_SHOW_INSTALLABLE, default=False): cv.boolean,
         vol.Optional(CONF_CARD_CONFIG_URLS, default=[]):
             vol.All(cv.ensure_list, [cv.url]),
         vol.Optional(CONF_COMPONENT_CONFIG_URLS, default=[]):
@@ -52,6 +55,7 @@ def setup(hass, config):
     """Set up this component."""
     conf_track = config[DOMAIN][CONF_TRACK]
     conf_hide_sensor = config[DOMAIN][CONF_HIDE_SENSOR]
+    config_show_installabe = config[DOMAIN][CONF_SHOW_INSTALLABLE]
     conf_card_urls = [DEFAULT_REMOTE_CARD_CONFIG_URL] + config[DOMAIN][CONF_CARD_CONFIG_URLS]
     conf_component_urls = [DEFAULT_REMOTE_COMPONENT_CONFIG_URL] + config[DOMAIN][CONF_COMPONENT_CONFIG_URLS]
 
@@ -60,10 +64,10 @@ def setup(hass, config):
 
     ha_conf_dir = str(hass.config.path())
     if 'cards' in conf_track:
-        card_controller = CustomCards(hass, ha_conf_dir, conf_hide_sensor, conf_card_urls)
+        card_controller = CustomCards(hass, ha_conf_dir, conf_hide_sensor, conf_card_urls, config_show_installabe)
         track_time_interval(hass, card_controller.cache_versions, INTERVAL)
     if 'components' in conf_track:
-        components_controller = CustomComponents(hass, ha_conf_dir, conf_hide_sensor, conf_component_urls)
+        components_controller = CustomComponents(hass, ha_conf_dir, conf_hide_sensor, conf_component_urls, config_show_installabe)
         track_time_interval(hass, components_controller.cache_versions, INTERVAL)
 
     def check_all_service(call):
@@ -80,10 +84,17 @@ def setup(hass, config):
         if not conf_track or 'components' in conf_track:
             components_controller.update_all()
 
+    def install_service(call):
+        """install single component/card"""
+        element = call.data.get(ATTR_ELEMENT)
+        _LOGGER.debug('Installing %s', element)
+        card_controller.install(element)
+        components_controller.install(element)
+
     if not conf_track or 'cards' in conf_track:
         def upgrade_card_service(call):
             """Set up service for manual trigger."""
-            card_controller.upgrade_single(call.data.get(ATTR_CARD))
+            card_controller.upgrade_single(call.data.get(ATTR_CARD), 'auto')
         hass.services.register(DOMAIN, 'upgrade_single_card', upgrade_card_service)
 
     if not conf_track or 'components' in conf_track:
@@ -94,14 +105,16 @@ def setup(hass, config):
 
     hass.services.register(DOMAIN, 'check_all', check_all_service)
     hass.services.register(DOMAIN, 'update_all', update_all_service)
+    hass.services.register(DOMAIN, 'install', install_service)
     return True
 
 
 class CustomCards(object):
     """Custom cards controller."""
-    def __init__(self, hass, ha_conf_dir, conf_hide_sensor, conf_card_urls):
+    def __init__(self, hass, ha_conf_dir, conf_hide_sensor, conf_card_urls, config_show_installabe):
         self.hass = hass
         self._hide_sensor = conf_hide_sensor
+        self._config_show_installabe = config_show_installabe
         self.ha_conf_dir = ha_conf_dir
         self.conf_card_urls = conf_card_urls
         self.cards = None
@@ -132,7 +145,11 @@ class CustomCards(object):
             for name, card in self.cards.items():
                 remote_version = card[1]
                 local_version = self.get_local_version(card[0])
-                if local_version:
+                if self._config_show_installabe:
+                    show = remote_version
+                else: 
+                    show = local_version
+                if show:
                     has_update = (remote_version != False and remote_version != local_version and remote_version != '')
                     not_local = (remote_version != False and not local_version)
                     self.hass.data[CARD_DATA][name] = {
@@ -155,24 +172,31 @@ class CustomCards(object):
             if name not in ('domain', 'repo', 'hidden'):
                 try:
                     if self.hass.data[CARD_DATA][name]['has_update'] and not self.hass.data[CARD_DATA][name]['not_local']:
-                        self.upgrade_single(name)
+                        self.upgrade_single(name, 'auto')
                 except KeyError:
                     _LOGGER.debug('Skipping upgrade for %s, no update available', name)
 
-    def upgrade_single(self, name):
+    def upgrade_single(self, name, method):
         """Update one components"""
         _LOGGER.debug('Starting upgrade for "%s".', name)
         if name in self.hass.data[CARD_DATA]:
             if self.hass.data[CARD_DATA][name]['has_update']:
                 remote_info = self.get_all_remote_info()[name]
                 remote_file = remote_info[2]
-                local_file = self.ha_conf_dir + self.get_card_dir(name) + name + '.js'
+                if method == 'auto':
+                    local_file = self.ha_conf_dir + self.get_card_dir(name) + name + '.js'
+                else:
+                    if self._lovelace_gen:
+                        local_file = self.ha_conf_dir + '/lovelace/' + name + '.js'
+                    else:
+                        local_file = self.ha_conf_dir + '/www/' + name + '.js'
                 test_remote_file = requests.get(remote_file)
                 if test_remote_file.status_code == 200:
                     with open(local_file, 'wb') as card_file:
                         card_file.write(test_remote_file.content)
                     card_file.close()
-                    self.update_resource_version(name)
+                    if method == 'auto':
+                        self.update_resource_version(name)
                     _LOGGER.info('Upgrade of %s from version %s to version %s complete',
                                  name, self.hass.data[CARD_DATA][name]['local'],
                                  self.hass.data[CARD_DATA][name]['remote'])
@@ -184,6 +208,16 @@ class CustomCards(object):
                 _LOGGER.debug('Skipping upgrade for %s, no update available', name)
         else:
             _LOGGER.error('Upgrade failed, "%s" is not a valid card', name)
+
+    def install(self, card):
+        """install single card"""
+        if card in self.hass.data[CARD_DATA]:
+            self.hass.data[CARD_DATA][card]['has_update'] = True
+            self.upgrade_single(card, 'manual')
+            _LOGGER.info('Sucessfully installed %s, make sure you read the documentation on how to set it up.', card)
+            return True
+        else:
+            return False
 
     def update_resource_version(self, name):
         """Updating the ui-lovelace file"""
@@ -269,9 +303,10 @@ class CustomCards(object):
 
 class CustomComponents(object):
     """Custom components controller."""
-    def __init__(self, hass, ha_conf_dir, conf_hide_sensor, conf_component_urls):
+    def __init__(self, hass, ha_conf_dir, conf_hide_sensor, conf_component_urls, config_show_installabe):
         self.hass = hass
         self._hide_sensor = conf_hide_sensor
+        self._config_show_installabe = config_show_installabe
         self.ha_conf_dir = ha_conf_dir
         self.conf_component_urls = conf_component_urls
         self.components = None
@@ -286,7 +321,11 @@ class CustomComponents(object):
             for name, component in self.components.items():
                 remote_version = component[1]
                 local_version = self.get_local_version(name, component[2])
-                if local_version:
+                if self._config_show_installabe:
+                    show = remote_version
+                else: 
+                    show = local_version
+                if show:
                     has_update = (remote_version != False and remote_version != local_version)
                     not_local = (remote_version != False and not local_version)
                     self.hass.data[COMPONENT_DATA][name] = {
@@ -337,6 +376,20 @@ class CustomComponents(object):
                 _LOGGER.debug('Skipping upgrade for %s, no update available', name)
         else:
             _LOGGER.error('Upgrade failed, "%s" is not a valid component', name)
+
+    def install(self, component):
+        """install single component"""
+        if component in self.hass.data[COMPONENT_DATA]:
+            self.hass.data[COMPONENT_DATA][component]['has_update'] = True
+            if '.' in component:
+                comppath = '/custom_components/' + component.split('.')[0]
+                if not os.path.isdir(self.ha_conf_dir + comppath):
+                    os.mkdir(self.ha_conf_dir + comppath)
+            self.upgrade_single(component)
+            _LOGGER.info('Sucessfully installed %s, make sure you read the documentation on how to set it up.', component)
+            return True
+        else:
+            return False
 
     def get_all_remote_info(self):
         """Return all remote info if any."""
