@@ -15,7 +15,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '2.1.0'
+__version__ = '2.1.1'
 
 _LOGGER = logging.getLogger(__name__)
 
