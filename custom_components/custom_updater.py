@@ -257,21 +257,22 @@ class CustomCards(object):
         """Return all remote info if any."""
         remote_info = {}
         for url in self.conf_card_urls:
-            response = requests.get(url)
-            if response.status_code == 200:
-                for name, card in response.json().items():
-                    try:
-                        card = [
-                            name,
-                            card['version'],
-                            card['remote_location'],
-                            card['visit_repo'],
-                            card['changelog']
-                        ]
-                        remote_info[name] = card
-                    except KeyError:
-                        _LOGGER.debug('Gathering remote info for %s failed...', name)
-            else:
+            try:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    for name, card in response.json().items():
+                        try:
+                            card = [
+                                name,
+                                card['version'],
+                                card['remote_location'],
+                                card['visit_repo'],
+                                card['changelog']
+                            ]
+                            remote_info[name] = card
+                        except KeyError:
+                            _LOGGER.debug('Gathering remote info for %s failed...', name)
+            except:
                 _LOGGER.debug('Could not get remote info for url %s', DEFAULT_REMOTE_CARD_CONFIG_URL)
         return remote_info
 
@@ -395,22 +396,23 @@ class CustomComponents(object):
         """Return all remote info if any."""
         remote_info = {}
         for url in self.conf_component_urls:
-            response = requests.get(url)
-            if response.status_code == 200:
-                for name, component in response.json().items():
-                    try:
-                        component = [
-                            name,
-                            component['version'],
-                            component['local_location'],
-                            component['remote_location'],
-                            component['visit_repo'],
-                            component['changelog']
-                        ]
-                        remote_info[name] = component
-                    except KeyError:
-                        _LOGGER.debug('Gathering remote info for %s failed...', name)
-            else:
+            try:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    for name, component in response.json().items():
+                        try:
+                            component = [
+                                name,
+                                component['version'],
+                                component['local_location'],
+                                component['remote_location'],
+                                component['visit_repo'],
+                                component['changelog']
+                            ]
+                            remote_info[name] = component
+                        except KeyError:
+                            _LOGGER.debug('Gathering remote info for %s failed...', name)
+            except:
                 _LOGGER.debug('Could not get remote info for url %s', DEFAULT_REMOTE_COMPONENT_CONFIG_URL)
         return remote_info
 
