@@ -15,7 +15,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '2.1.1'
+__version__ = '2.2.0'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -195,6 +195,7 @@ class CustomCards(object):
                     with open(local_file, 'wb') as card_file:
                         card_file.write(test_remote_file.content)
                     card_file.close()
+                    self.upgrade_lib(name, method)
                     if method == 'auto':
                         self.update_resource_version(name)
                     _LOGGER.info('Upgrade of %s from version %s to version %s complete',
@@ -208,6 +209,25 @@ class CustomCards(object):
                 _LOGGER.debug('Skipping upgrade for %s, no update available', name)
         else:
             _LOGGER.error('Upgrade failed, "%s" is not a valid card', name)
+
+    def upgrade_lib(self, name, method):
+        """Update one components"""
+        _LOGGER.debug('Downloading lib for %s if available', name)
+        remote_info = self.get_all_remote_info()[name]
+        remote_file = remote_info[2][:-3] + '.lib.js'
+        if method == 'auto':
+            local_file = self.ha_conf_dir + self.get_card_dir(name) + name + '.lib.js'
+        else:
+            if self._lovelace_gen:
+                local_file = self.ha_conf_dir + '/lovelace/' + name + '.lib.js'
+            else:
+                local_file = self.ha_conf_dir + '/www/' + name + '.lib.js'
+        test_remote_file = requests.get(remote_file)
+        if test_remote_file.status_code == 200:
+            with open(local_file, 'wb') as card_file:
+                card_file.write(test_remote_file.content)
+            card_file.close()
+            _LOGGER.info('Sucessfully upgraded lib for %s', name)
 
     def install(self, card):
         """install single card"""
