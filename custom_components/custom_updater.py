@@ -15,7 +15,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '2.2.0'
+__version__ = '2.2.1'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -293,7 +293,7 @@ class CustomCards(object):
                         except KeyError:
                             _LOGGER.debug('Gathering remote info for %s failed...', name)
             except:
-                _LOGGER.debug('Could not get remote info for url %s', DEFAULT_REMOTE_CARD_CONFIG_URL)
+                _LOGGER.debug('Could not get remote info for url "%s"', url)
         return remote_info
 
     def get_local_version(self, name):
@@ -433,7 +433,7 @@ class CustomComponents(object):
                         except KeyError:
                             _LOGGER.debug('Gathering remote info for %s failed...', name)
             except:
-                _LOGGER.debug('Could not get remote info for url %s', DEFAULT_REMOTE_COMPONENT_CONFIG_URL)
+                _LOGGER.debug('Could not get remote info for url "%s"', url)
         return remote_info
 
     def get_local_version(self, name, local_path):

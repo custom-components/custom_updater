@@ -1,0 +1,44 @@
+language: python
+stages:
+  - linting
+  - load
+
+jobs:
+  include:
+    #Linting
+    - stage: linting
+      install: pip install pycodestyle
+      name: "Linting with pycodestyle"
+      python: "3.6"
+      script: find . -name \*.py -exec pycodestyle {} +
+    - stage: linting
+      install: pip install pydocstyle
+      name: "Linting with pydocstyle"
+      python: "3.6"
+      script: find . -name \*.py -exec pydocstyle {} +
+    - stage: linting
+      install: pip install pylint
+      name: "Linting with pylint"
+      python: "3.6"
+      script: find . -name \*.py -exec pylint --disable=F0401,W0613 {} +
+    - stage: linting
+      install: pip install pyflakes
+      name: "Linting with pyflakes"
+      python: "3.6"
+      script: find . -name \*.py -exec pyflakes {} +
+    - stage: linting
+      install: pip install flake8
+      name: "Linting with flake8"
+      python: "3.6"
+      script: find . -name \*.py -exec flake8 {} +
+
+    # Load component with Home Assistant
+    - stage: load
+      name: "Load component/platform in Home Assistant"
+      install: pip install homeassistant
+      python: "3.6"
+      script:
+        - hass -c . --daemon
+        - sleep 60
+        - cat ./home-assistant.log
+        - if grep -q 'ERROR' ./home-assistant.log; then echo "There was an error starting Home Assistant"; exit 1; fi
