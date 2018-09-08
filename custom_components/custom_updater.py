@@ -15,7 +15,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '2.4.0'
+__version__ = '2.5.0'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -158,6 +158,8 @@ class CustomCards():
         self.hass.data[CARD_DATA] = {}
         self.hass.data[CARD_DATA]['domain'] = 'custom_cards'
         self.hass.data[CARD_DATA]['repo'] = '#'
+        if self._hide_sensor:
+            self.hass.data[CARD_DATA]['hidden'] = True
         if self.cards:
             for name, card in self.cards.items():
                 remote_version = card[1]
@@ -178,8 +180,6 @@ class CustomCards():
                         "repo": card[3],
                         "change_log": card[4],
                     }
-                    if self._hide_sensor:
-                        self.hass.data[CARD_DATA]['hidden'] = True
             self.hass.states.set('sensor.custom_card_tracker', time.time(),
                                  self.hass.data[CARD_DATA])
 
@@ -382,6 +382,8 @@ class CustomComponents():
         self.hass.data[COMP_DATA] = {}
         self.hass.data[COMP_DATA]['domain'] = 'custom_components'
         self.hass.data[COMP_DATA]['repo'] = '#'
+        if self._hide_sensor:
+            self.hass.data[COMP_DATA]['hidden'] = True
         if self.components:
             for name, component in self.components.items():
                 remote_version = component[1]
@@ -402,8 +404,6 @@ class CustomComponents():
                         "repo": component[4],
                         "change_log": component[5],
                     }
-                    if self._hide_sensor:
-                        self.hass.data[COMP_DATA]['hidden'] = True
             self.hass.states.set('sensor.custom_component_tracker',
                                  time.time(), self.hass.data[COMP_DATA])
 
