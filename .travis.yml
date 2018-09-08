@@ -55,7 +55,7 @@ jobs:
         target_commitish: $TRAVIS_COMMIT
         tag_name: $TRAVIS_TAG
         name: $TRAVIS_TAG
-        body: $TRAVIS_COMMIT
+        body: $TRAVIS_COMMIT_MESSAGE
         api_key: $GHAPI
         on:
           tags: true
