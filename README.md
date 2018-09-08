@@ -1,4 +1,4 @@
-# Custom Updater
+# Custom Updater [![Build Status](https://travis-ci.com/custom-components/custom_updater.svg?branch=master)](https://travis-ci.com/custom-components/custom_updater)
 
 A component which allows you to track and update your custom cards and components.\
 **To get the best use for this component, use it together with the [tracker-card](https://github.com/custom-cards/tracker-card)**

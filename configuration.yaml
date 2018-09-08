@@ -1,0 +1,10 @@
+## this is used by travis
+homeassistant:
+  name: Home Assistant
+  latitude: 0
+  longitude: 0
+  elevation: 0
+  unit_system: metric
+  time_zone: Europe/London
+
+custom_updater:
