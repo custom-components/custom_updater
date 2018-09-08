@@ -15,7 +15,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '2.3.0'
+__version__ = '2.4.0'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -199,35 +199,40 @@ class CustomCards():
         _LOGGER.debug('Starting upgrade for "%s".', name)
         if name in self.hass.data[CARD_DATA]:
             if self.hass.data[CARD_DATA][name]['has_update']:
-                remote_info = self.get_all_remote_info()[name]
-                remote_file = remote_info[2]
-                if method == 'auto':
-                    local_file = (self.ha_conf_dir +
-                                  self.get_card_dir(name) + name + '.js')
-                else:
-                    if self._lovelace_gen:
-                        local_file = (self.ha_conf_dir +
-                                      '/lovelace/' + name + '.js')
-                    else:
-                        local_file = self.ha_conf_dir + '/www/' + name + '.js'
-                test_remote_file = requests.get(remote_file)
-                if test_remote_file.status_code == 200:
-                    with open(local_file, 'wb') as card_file:
-                        card_file.write(test_remote_file.content)
-                    card_file.close()
-                    self.upgrade_lib(name, method)
+                try:
+                    remote_info = self.get_all_remote_info()[name]
+                    remote_file = remote_info[2]
                     if method == 'auto':
-                        self.update_resource_version(name)
-                    _LOGGER.info('%s upgrade from %s to %s complete',
-                                 name,
-                                 self.hass.data[CARD_DATA][name]['local'],
-                                 self.hass.data[CARD_DATA][name]['remote'])
-                remote = self.hass.data[CARD_DATA][name]['remote']
-                self.hass.data[CARD_DATA][name]['local'] = remote
-                self.hass.data[CARD_DATA][name]['has_update'] = False
-                self.hass.data[CARD_DATA][name]['not_local'] = False
-                self.hass.states.set('sensor.custom_card_tracker',
-                                     time.time(), self.hass.data[CARD_DATA])
+                        local_file = (self.ha_conf_dir +
+                                      self.get_card_dir(name) + name + '.js')
+                    else:
+                        if self._lovelace_gen:
+                            local_file = (self.ha_conf_dir +
+                                          '/lovelace/' + name + '.js')
+                        else:
+                            local_file = (self.ha_conf_dir + '/www/' + name +
+                                          '.js')
+                    test_remote_file = requests.get(remote_file)
+                    if test_remote_file.status_code == 200:
+                        with open(local_file, 'wb') as card_file:
+                            card_file.write(test_remote_file.content)
+                        card_file.close()
+                        self.upgrade_lib(name, method)
+                        if method == 'auto':
+                            self.update_resource_version(name)
+                        _LOGGER.info('%s upgrade from %s to %s complete',
+                                     name,
+                                     self.hass.data[CARD_DATA][name]['local'],
+                                     self.hass.data[CARD_DATA][name]['remote'])
+                        remote = self.hass.data[CARD_DATA][name]['remote']
+                        self.hass.data[CARD_DATA][name]['local'] = remote
+                        self.hass.data[CARD_DATA][name]['has_update'] = False
+                        self.hass.data[CARD_DATA][name]['not_local'] = False
+                        self.hass.states.set('sensor.custom_card_tracker',
+                                             time.time(),
+                                             self.hass.data[CARD_DATA])
+                except PermissionError:
+                    _LOGGER.error('Premission denied!')
             else:
                 _LOGGER.debug('No update available for %s', name)
         else:
@@ -424,20 +429,23 @@ class CustomComponents():
                 local_file = self.ha_conf_dir + remote_info[2]
                 test_remote_file = requests.get(remote_file)
                 if test_remote_file.status_code == 200:
-                    with open(local_file, 'wb') as component_file:
-                        component_file.write(test_remote_file.content)
-                    component_file.close()
-                    _LOGGER.info('%s upgrade from %s to %s complete',
-                                 name,
-                                 self.hass.data[COMP_DATA][name]['local'],
-                                 self.hass.data[COMP_DATA][name]['remote'])
-                remote = self.hass.data[COMP_DATA][name]['remote']
-                self.hass.data[COMP_DATA][name]['local'] = remote
-                self.hass.data[COMP_DATA][name]['has_update'] = False
-                self.hass.data[COMP_DATA][name]['not_local'] = False
-                self.hass.states.set('sensor.custom_component_tracker',
-                                     time.time(),
-                                     self.hass.data[COMP_DATA])
+                    try:
+                        with open(local_file, 'wb') as component_file:
+                            component_file.write(test_remote_file.content)
+                        component_file.close()
+                        _LOGGER.info('%s upgrade from %s to %s complete',
+                                     name,
+                                     self.hass.data[COMP_DATA][name]['local'],
+                                     self.hass.data[COMP_DATA][name]['remote'])
+                        remote = self.hass.data[COMP_DATA][name]['remote']
+                        self.hass.data[COMP_DATA][name]['local'] = remote
+                        self.hass.data[COMP_DATA][name]['has_update'] = False
+                        self.hass.data[COMP_DATA][name]['not_local'] = False
+                        self.hass.states.set('sensor.custom_component_tracker',
+                                             time.time(),
+                                             self.hass.data[COMP_DATA])
+                    except PermissionError:
+                        _LOGGER.error('Premission denied!')
             else:
                 _LOGGER.debug('No update available for %s', name)
         else:
