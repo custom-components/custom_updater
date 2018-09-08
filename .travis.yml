@@ -47,17 +47,15 @@ jobs:
     # Deploy to Github if all tests pass and change was done on master.
     - stage: deploy
       name: "Deploy to GitHub"
-      install: pip install -U pip setuptools wheel
       script: skip
       deploy: &releases
         provider: releases
         overwrite: true
-        skip_cleanup: true
+        #skip_cleanup: true
         target_commitish: $TRAVIS_COMMIT
         tag_name: $TRAVIS_TAG
         name: $TRAVIS_TAG
         body: $TRAVIS_COMMIT
-        api_key:
-          secure: $GHAPI
+        api_key: $GHAPI
         #on:
         #  tags: true
