@@ -45,6 +45,10 @@ jobs:
         - if grep -q 'ERROR' ./home-assistant.log; then echo "There was an error starting Home Assistant"; exit 1; fi
 
     # Deploy to Github if all tests pass and change was done on master.
+    # git commit -m 'message'
+    # git push
+    # git tag x.x.x
+    # git push origin x.x.x
     - stage: deploy
       name: "Deploy to GitHub"
       script: skip
