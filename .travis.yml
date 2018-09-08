@@ -51,11 +51,11 @@ jobs:
       deploy: &releases
         provider: releases
         overwrite: true
-        #skip_cleanup: true
+        skip_cleanup: true
         target_commitish: $TRAVIS_COMMIT
         tag_name: $TRAVIS_TAG
         name: $TRAVIS_TAG
         body: $TRAVIS_COMMIT
         api_key: $GHAPI
-        #on:
-        #  tags: true
+        on:
+          tags: true
