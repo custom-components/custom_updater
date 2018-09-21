@@ -9,7 +9,6 @@ import logging
 import os
 import re
 import sys
-import time
 from datetime import timedelta
 
 import requests
@@ -19,7 +18,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 import yaml
 
-__version__ = '2.6.1'
+__version__ = '2.7.0'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -137,6 +136,7 @@ class CustomCards():
         self.ha_conf_dir = str(hass.config.path())
         self.conf_card_urls = conf_card_urls
         self.cards = None
+        self._updatable = 0
         self._lovelace_gen = self.get_lovelace_gen()
         self._conf_file_path = self.get_conf_file_path()
         self.hass.data[CARD_DATA] = {}
@@ -161,6 +161,7 @@ class CustomCards():
         self.hass.data[CARD_DATA] = {}
         self.hass.data[CARD_DATA]['domain'] = 'custom_cards'
         self.hass.data[CARD_DATA]['repo'] = '#'
+        self._updatable = 0
         if self._hide_sensor:
             self.hass.data[CARD_DATA]['hidden'] = True
         if self.cards:
@@ -175,6 +176,8 @@ class CustomCards():
                     has_update = (remote_version and remote_version !=
                                   local_version and remote_version != '')
                     not_local = (remote_version and not local_version)
+                    if has_update and not not_local:
+                        self._updatable = self._updatable + 1
                     self.hass.data[CARD_DATA][name] = {
                         "local": local_version,
                         "remote": remote_version,
@@ -183,7 +186,7 @@ class CustomCards():
                         "repo": card[3],
                         "change_log": card[4],
                     }
-            self.hass.states.set('sensor.custom_card_tracker', time.time(),
+            self.hass.states.set('sensor.custom_card_tracker', self._updatable,
                                  self.hass.data[CARD_DATA])
 
     def update_all(self):
@@ -233,8 +236,9 @@ class CustomCards():
                         self.hass.data[CARD_DATA][name]['local'] = remote
                         self.hass.data[CARD_DATA][name]['has_update'] = False
                         self.hass.data[CARD_DATA][name]['not_local'] = False
+                        self._updatable = self._updatable - 1
                         self.hass.states.set('sensor.custom_card_tracker',
-                                             time.time(),
+                                             self._updatable,
                                              self.hass.data[CARD_DATA])
                 except PermissionError:
                     _LOGGER.error('Premission denied!')
@@ -412,6 +416,7 @@ class CustomComponents():
         self.ha_conf_dir = str(hass.config.path())
         self.conf_component_urls = conf_component_urls
         self.components = None
+        self._updatable = 0
         self.hass.data[COMP_DATA] = {}
         self.cache_versions()
 
@@ -421,6 +426,7 @@ class CustomComponents():
         self.hass.data[COMP_DATA] = {}
         self.hass.data[COMP_DATA]['domain'] = 'custom_components'
         self.hass.data[COMP_DATA]['repo'] = '#'
+        self._updatable = 0
         if self._hide_sensor:
             self.hass.data[COMP_DATA]['hidden'] = True
         if self.components:
@@ -435,6 +441,8 @@ class CustomComponents():
                     has_update = (remote_version and
                                   remote_version != local_version)
                     not_local = (remote_version and not local_version)
+                    if has_update and not not_local:
+                        self._updatable = self._updatable + 1
                     self.hass.data[COMP_DATA][name] = {
                         "local": local_version,
                         "remote": remote_version,
@@ -444,7 +452,7 @@ class CustomComponents():
                         "change_log": component[5],
                     }
             self.hass.states.set('sensor.custom_component_tracker',
-                                 time.time(), self.hass.data[COMP_DATA])
+                                 self._updatable, self.hass.data[COMP_DATA])
 
     def update_all(self):
         """Update all components."""
@@ -479,8 +487,9 @@ class CustomComponents():
                         self.hass.data[COMP_DATA][name]['local'] = remote
                         self.hass.data[COMP_DATA][name]['has_update'] = False
                         self.hass.data[COMP_DATA][name]['not_local'] = False
+                        self._updatable = self._updatable - 1
                         self.hass.states.set('sensor.custom_component_tracker',
-                                             time.time(),
+                                             self._updatable,
                                              self.hass.data[COMP_DATA])
                     except PermissionError:
                         _LOGGER.error('Premission denied!')
