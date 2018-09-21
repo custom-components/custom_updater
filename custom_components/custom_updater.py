@@ -7,15 +7,18 @@ https://github.com/custom-components/custom_updater
 
 import logging
 import os
+import re
 import subprocess
 import time
 from datetime import timedelta
+
 import requests
+from requests import RequestException
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '2.5.0'
+__version__ = '2.5.1'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -365,11 +368,11 @@ class CustomComponents():
     """Custom components controller."""
 
     def __init__(self, hass, conf_hide_sensor,
-                 conf_component_urls, config_show_installabe):
+                 conf_component_urls, config_show_installable):
         """Initialize."""
         self.hass = hass
         self._hide_sensor = conf_hide_sensor
-        self._config_show_installabe = config_show_installabe
+        self._config_show_installable = config_show_installable
         self.ha_conf_dir = str(hass.config.path())
         self.conf_component_urls = conf_component_urls
         self.components = None
@@ -388,7 +391,7 @@ class CustomComponents():
             for name, component in self.components.items():
                 remote_version = component[1]
                 local_version = self.get_local_version(name, component[2])
-                if self._config_show_installabe:
+                if self._config_show_installable:
                     show = remote_version
                 else:
                     show = local_version
@@ -412,9 +415,8 @@ class CustomComponents():
         for name in self.hass.data[COMP_DATA]:
             if name not in ('domain', 'repo', 'hidden'):
                 try:
-                    if (self.hass.data[COMP_DATA][name]['has_update']
-                            and not
-                            self.hass.data[COMP_DATA][name]['not_local']):
+                    if (self.hass.data[COMP_DATA][name]['has_update'] and
+                            not self.hass.data[COMP_DATA][name]['not_local']):
                         self.upgrade_single(name)
                 except KeyError:
                     _LOGGER.debug('No update available for %s', name)
@@ -426,7 +428,7 @@ class CustomComponents():
             if self.hass.data[COMP_DATA][name]['has_update']:
                 remote_info = self.get_all_remote_info()[name]
                 remote_file = remote_info[3]
-                local_file = self.ha_conf_dir + remote_info[2]
+                local_file = os.path.join(self.ha_conf_dir, remote_info[2])
                 test_remote_file = requests.get(remote_file)
                 if test_remote_file.status_code == 200:
                     try:
@@ -456,16 +458,25 @@ class CustomComponents():
         """Install single component."""
         if component in self.hass.data[COMP_DATA]:
             self.hass.data[COMP_DATA][component]['has_update'] = True
-            if '.' in component:
-                comppath = '/custom_components/' + component.split('.')[0]
-                if not os.path.isdir(self.ha_conf_dir + comppath):
-                    os.mkdir(self.ha_conf_dir + comppath)
+            matcher = re.compile(r"^(.*)\..*$").match(component)
+            if matcher:
+                component_path = os.path.join(self.ha_conf_dir,
+                                              'custom_components',
+                                              matcher.group(1))
+                if not os.path.isdir(component_path):
+                    os.mkdir(component_path)
             self.upgrade_single(component)
             _LOGGER.info('Successfully installed %s', component)
-            retval = True
-        else:
-            retval = False
-        return retval
+
+    @staticmethod
+    def _normalize_path(path):
+        path = path.replace('/', os.path.sep)\
+            .replace('\\', os.path.sep)
+
+        if path.startswith(os.path.sep):
+            path = path[1:]
+
+        return path
 
     def get_all_remote_info(self):
         """Return all remote info if any."""
@@ -479,7 +490,8 @@ class CustomComponents():
                             component = [
                                 name,
                                 component['version'],
-                                component['local_location'],
+                                self._normalize_path(
+                                    component['local_location']),
                                 component['remote_location'],
                                 component['visit_repo'],
                                 component['changelog']
@@ -488,27 +500,22 @@ class CustomComponents():
                         except KeyError:
                             _LOGGER.debug('Could not get remote info for %s',
                                           name)
-            except requests.exceptions.RequestException:
+            except RequestException:
                 _LOGGER.debug('Could not get remote info for url "%s"', url)
         return remote_info
 
     def get_local_version(self, name, local_path):
         """Return the local version if any."""
-        local_version = None
-        component_path = self.ha_conf_dir + local_path
+        component_path = os.path.join(self.ha_conf_dir, local_path)
         if os.path.isfile(component_path):
             with open(component_path, 'r') as local:
+                pattern = re.compile(r"^__version__\s*=\s*['\"](.*)['\"]$")
                 for line in local.readlines():
-                    if '__version__' in line:
-                        local_version = line.split("'")[1]
-                        break
-            local.close()
-            if not local_version:
-                local_v = False
-                _LOGGER.debug('Could not get the local version for %s', name)
-            else:
-                local_v = local_version
-                _LOGGER.debug('Local version of %s is %s', name, local_version)
-        else:
-            local_v = False
-        return local_v
+                    matcher = pattern.match(line)
+                    if matcher:
+                        _LOGGER.debug('Local version of %s is %s',
+                                      name,
+                                      matcher.group(1))
+                        return matcher.group(1)
+        _LOGGER.debug('Could not get the local version for %s', name)
+        return False
