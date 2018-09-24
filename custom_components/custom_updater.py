@@ -376,7 +376,7 @@ class CustomCards():
 
     def get_resources(self):
         """Get resources."""
-        yaml.add_constructor(u'!resource', self.env_constructor)
+        yaml.add_constructor(u'!resource', env_constructor)
         if os.path.isfile(self._conf_file_path):
             with open(self._conf_file_path, 'r') as local:
                 content = yaml.load(local)
