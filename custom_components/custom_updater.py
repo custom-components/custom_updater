@@ -18,7 +18,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 import yaml
 
-__version__ = '2.7.0'
+__version__ = '2.7.1'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -374,11 +374,17 @@ class CustomCards():
             return os.path.join(self.ha_conf_dir, 'lovelace', 'main.yaml')
         return os.path.join(self.ha_conf_dir, 'ui-lovelace.yaml')
 
+    def env_constructor(self, loader, node):
+        """Add custom node to yaml loader."""
+        value = loader.construct_scalar(node)
+        return os.environ.get(value)
+
     def get_resources(self):
         """Get resources."""
+        yaml.add_constructor(u'!resource', self.env_constructor)
         if os.path.isfile(self._conf_file_path):
             with open(self._conf_file_path, 'r') as local:
-                content = yaml.safe_load(local)
+                content = yaml.load(local)
                 if content['resources'] is not None:
                     resources = []
                     for tuples in content['resources']:
@@ -386,6 +392,7 @@ class CustomCards():
                         for key, value in tuples.items():
                             resource.setdefault(key, value)
                         resources.append(resource)
+                    _LOGGER.debug(resources)
                     return resources
         return []
 
