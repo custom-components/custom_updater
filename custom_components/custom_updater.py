@@ -374,11 +374,6 @@ class CustomCards():
             return os.path.join(self.ha_conf_dir, 'lovelace', 'main.yaml')
         return os.path.join(self.ha_conf_dir, 'ui-lovelace.yaml')
 
-    def env_constructor(self, loader, node):
-        """Add custom node to yaml loader."""
-        value = loader.construct_scalar(node)
-        return os.environ.get(value)
-
     def get_resources(self):
         """Get resources."""
         yaml.add_constructor(u'!resource', self.env_constructor)
@@ -571,3 +566,9 @@ class CustomComponents():
                         return matcher.group(1)
         _LOGGER.debug('Could not get the local version for %s', name)
         return False
+
+
+def env_constructor(self, loader, node):
+    """Add custom node to yaml loader."""
+    value = loader.construct_scalar(node)
+    return os.environ.get(value)
