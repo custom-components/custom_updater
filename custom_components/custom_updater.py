@@ -18,7 +18,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 import yaml
 
-__version__ = '2.7.2'
+__version__ = '2.7.3'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -194,7 +194,7 @@ class CustomCards():
     def update_all(self):
         """Update all cards."""
         for name in self.hass.data[CARD_DATA]:
-            if name not in ('domain', 'repo', 'hidden'):
+            if name not in ('domain', 'repo', 'hidden', 'has_update'):
                 try:
                     if (self.hass.data[CARD_DATA][name]['has_update'] and
                             not self.hass.data[CARD_DATA][name]['not_local']):
@@ -239,6 +239,11 @@ class CustomCards():
                         self.hass.data[CARD_DATA][name]['has_update'] = False
                         self.hass.data[CARD_DATA][name]['not_local'] = False
                         self._updatable = self._updatable - 1
+                        try:
+                            self.hass.data[CARD_DATA]['has_update'].remove(
+                                name)
+                        except ValueError:
+                            pass
                         self.hass.states.set('sensor.custom_card_tracker',
                                              self._updatable,
                                              self.hass.data[CARD_DATA])
@@ -463,7 +468,7 @@ class CustomComponents():
     def update_all(self):
         """Update all components."""
         for name in self.hass.data[COMP_DATA]:
-            if name not in ('domain', 'repo', 'hidden'):
+            if name not in ('domain', 'repo', 'hidden', 'has_update'):
                 try:
                     if (self.hass.data[COMP_DATA][name]['has_update'] and
                             not self.hass.data[COMP_DATA][name]['not_local']):
@@ -494,6 +499,11 @@ class CustomComponents():
                         self.hass.data[COMP_DATA][name]['has_update'] = False
                         self.hass.data[COMP_DATA][name]['not_local'] = False
                         self._updatable = self._updatable - 1
+                        try:
+                            self.hass.data[COMP_DATA]['has_update'].remove(
+                                name)
+                        except ValueError:
+                            pass
                         self.hass.states.set('sensor.custom_component_tracker',
                                              self._updatable,
                                              self.hass.data[COMP_DATA])
