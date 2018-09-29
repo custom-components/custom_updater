@@ -2,7 +2,6 @@ language: python
 stages:
   - linting
   - load
-  - publish
 
 jobs:
   include:
@@ -43,23 +42,3 @@ jobs:
         - sleep 60
         - cat ./home-assistant.log
         - if grep -q 'ERROR' ./home-assistant.log; then echo "There was an error starting Home Assistant"; exit 1; fi
-
-    # Deploy to Github if all tests pass and change was done on master.
-    # git commit -m 'message'
-    # git push
-    # git tag x.x.x
-    # git push origin x.x.x
-    - stage: deploy
-      name: "Deploy to GitHub"
-      script: skip
-      deploy: &releases
-        provider: releases
-        overwrite: true
-        skip_cleanup: true
-        target_commitish: $TRAVIS_COMMIT
-        tag_name: $TRAVIS_TAG
-        name: $TRAVIS_TAG
-        body: $TRAVIS_COMMIT_MESSAGE
-        api_key: $GHAPI
-        on:
-          tags: true
