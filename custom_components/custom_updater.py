@@ -152,6 +152,8 @@ class CustomCards():
 class CustomComponents():
     """Custom components controller."""
 
+    # pylint: disable=too-many-instance-attributes
+
     def __init__(self, hass, conf_hide_sensor, conf_component_urls,
                  config_show_installable):
         """Initialize."""
@@ -186,6 +188,8 @@ class CustomComponents():
 
 class CustomPythonScripts():
     """Custom python_scripts controller."""
+
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(self, hass, conf_hide_sensor, conf_python_script_urls,
                  config_show_installable):
