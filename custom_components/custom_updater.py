@@ -54,7 +54,7 @@ def setup(hass, config):
     config_show_installabe = config[DOMAIN][CONF_SHOW_INSTALLABLE]
     conf_card_urls = config[DOMAIN][CONF_CARD_CONFIG_URLS]
     conf_component_urls = config[DOMAIN][CONF_COMPONENT_CONFIG_URLS]
-    conf_python_script_urls = config[DOMAIN][CONF_PYTHON_SCRIPT_CONFIG_URLS]
+    conf_py_script_urls = config[DOMAIN][CONF_PYTHON_SCRIPT_CONFIG_URLS]
 
     _LOGGER.info('if you have ANY issues with this, please report them here:'
                  ' https://github.com/custom-components/custom_updater')
@@ -74,7 +74,7 @@ def setup(hass, config):
     if 'python_scripts' in conf_track:
         python_scripts_controller = CustomPythonScripts(hass,
                                                         conf_hide_sensor,
-                                                        conf_python_script_urls,
+                                                        conf_py_script_urls,
                                                         config_show_installabe)
         track_time_interval(hass, python_scripts_controller.cache_versions,
                             INTERVAL)
@@ -94,6 +94,8 @@ def setup(hass, config):
             card_controller.update_all()
         if not conf_track or 'components' in conf_track:
             components_controller.update_all()
+        if not conf_track or 'python_scripts' in conf_track:
+            python_scripts_controller.update_all()
 
     def install_service(call):
         """Install single component/card."""
@@ -127,7 +129,6 @@ class CustomCards():
         self.show_installable = config_show_installable
         self.cache_versions()
 
-
     def cache_versions(self):
         """Cache."""
         information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
@@ -142,7 +143,6 @@ class CustomCards():
                                                     self.custom_url)
         self.hass.states.set('sensor.custom_card_tracker', information[1],
                              information[0])
-
 
     def install(self, element):
         """Install single card."""
@@ -166,7 +166,6 @@ class CustomComponents():
         self.show_installable = config_show_installable
         self.cache_versions()
 
-
     def cache_versions(self):
         """Cache."""
         information = self.pyupdate.get_sensor_data(self.custom_url)
@@ -183,6 +182,7 @@ class CustomComponents():
     def install(self, element):
         """Install single component."""
         self.pyupdate.install(self.ha_conf_dir, element, self.custom_url)
+
 
 class CustomPythonScripts():
     """Custom python_scripts controller."""
@@ -201,18 +201,19 @@ class CustomPythonScripts():
         self.show_installable = config_show_installable
         self.cache_versions()
 
-
     def cache_versions(self):
         """Cache."""
         information = self.pyupdate.get_sensor_data(self.custom_url)
-        self.hass.states.set('sensor.custom_python_script_tracker', information[1],
+        self.hass.states.set('sensor.custom_python_script_tracker',
+                             information[1],
                              information[0])
 
     def update_all(self):
         """Update all python_scripts."""
         self.pyupdate.update_all(self.ha_conf_dir, self.custom_url)
         information = self.pyupdate.get_sensor_data(self.custom_url)
-        self.hass.states.set('sensor.custom_python_script_tracker', information[1],
+        self.hass.states.set('sensor.custom_python_script_tracker',
+                             information[1],
                              information[0])
 
     def install(self, element):
