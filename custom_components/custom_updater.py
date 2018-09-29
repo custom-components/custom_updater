@@ -130,7 +130,6 @@ class CustomCards():
         self.show_installable = config_show_installable
         self.cache_versions()
 
-
     def cache_versions(self):
         """Cache."""
         information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
@@ -148,7 +147,6 @@ class CustomCards():
         self.hass.states.set('sensor.custom_card_tracker', information[1],
                              information[0])
 
-
     def install(self, element):
         """Install single card."""
         self.pyupdate.install(self.ha_conf_dir, element, self.custom_url)
@@ -156,6 +154,8 @@ class CustomCards():
 
 class CustomComponents():
     """Custom components controller."""
+
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(self, hass, conf_hide_sensor, conf_component_urls,
                  config_show_installable):
@@ -170,7 +170,6 @@ class CustomComponents():
         self.custom_url = conf_component_urls
         self.show_installable = config_show_installable
         self.cache_versions()
-
 
     def cache_versions(self):
         """Cache."""
@@ -191,8 +190,11 @@ class CustomComponents():
         """Install single component."""
         self.pyupdate.install(self.ha_conf_dir, element, self.custom_url)
 
+
 class CustomPythonScripts():
     """Custom python_scripts controller."""
+
+    # pylint: disable=too-many-instance-attributes
 
     def __init__(self, hass, conf_hide_sensor, conf_python_script_urls,
                  config_show_installable):
@@ -207,7 +209,6 @@ class CustomPythonScripts():
         self.custom_url = conf_python_script_urls
         self.show_installable = config_show_installable
         self.cache_versions()
-
 
     def cache_versions(self):
         """Cache."""
