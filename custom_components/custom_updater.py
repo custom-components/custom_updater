@@ -10,7 +10,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '3.1.1'
+__version__ = '3.1.2'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,9 +101,12 @@ def setup(hass, config):
         """Install single component/card."""
         element = call.data.get(ATTR_ELEMENT)
         _LOGGER.debug('Installing %s', element)
-        card_controller.install(element)
-        components_controller.install(element)
-        python_scripts_controller.install(element)
+        if not conf_track or 'cards' in conf_track:
+            card_controller.install(element)
+        if not conf_track or 'components' in conf_track:
+            components_controller.install(element)
+        if not conf_track or 'python_scripts' in conf_track:
+            python_scripts_controller.install(element)
 
     hass.services.register(DOMAIN, 'check_all', check_all_service)
     hass.services.register(DOMAIN, 'update_all', update_all_service)
