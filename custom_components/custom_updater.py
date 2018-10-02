@@ -10,11 +10,11 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-__version__ = '3.1.2'
+__version__ = '3.1.3'
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyupdate==0.2.1']
+REQUIREMENTS = ['pyupdate==0.2.4']
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
@@ -81,31 +81,31 @@ def setup(hass, config):
 
     def check_all_service(call):
         """Set up service for manual trigger."""
-        if not conf_track or 'cards' in conf_track:
+        if 'cards' in conf_track:
             card_controller.cache_versions()
-        if not conf_track or 'components' in conf_track:
+        if 'components' in conf_track:
             components_controller.cache_versions()
-        if not conf_track or 'python_scripts' in conf_track:
+        if 'python_scripts' in conf_track:
             python_scripts_controller.cache_versions()
 
     def update_all_service(call):
         """Set up service for manual trigger."""
-        if not conf_track or 'cards' in conf_track:
+        if 'cards' in conf_track:
             card_controller.update_all()
-        if not conf_track or 'components' in conf_track:
+        if 'components' in conf_track:
             components_controller.update_all()
-        if not conf_track or 'python_scripts' in conf_track:
+        if 'python_scripts' in conf_track:
             python_scripts_controller.update_all()
 
     def install_service(call):
         """Install single component/card."""
         element = call.data.get(ATTR_ELEMENT)
         _LOGGER.debug('Installing %s', element)
-        if not conf_track or 'cards' in conf_track:
+        if 'cards' in conf_track:
             card_controller.install(element)
-        if not conf_track or 'components' in conf_track:
+        if 'components' in conf_track:
             components_controller.install(element)
-        if not conf_track or 'python_scripts' in conf_track:
+        if 'python_scripts' in conf_track:
             python_scripts_controller.install(element)
 
     hass.services.register(DOMAIN, 'check_all', check_all_service)
@@ -143,7 +143,8 @@ class CustomCards():
 
     def update_all(self):
         """Update all cards."""
-        self.pyupdate.update_all(self.ha_conf_dir, self.custom_url)
+        self.pyupdate.update_all(self.ha_conf_dir, self.show_installable,
+                                 self.custom_url)
         information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
                                                     self.show_installable,
                                                     self.custom_url)
@@ -184,7 +185,8 @@ class CustomComponents():
 
     def update_all(self):
         """Update all components."""
-        self.pyupdate.update_all(self.ha_conf_dir, self.custom_url)
+        self.pyupdate.update_all(self.ha_conf_dir, self.show_installable,
+                                 self.custom_url)
         information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
                                                     self.show_installable,
                                                     self.custom_url)
@@ -226,7 +228,8 @@ class CustomPythonScripts():
 
     def update_all(self):
         """Update all python_scripts."""
-        self.pyupdate.update_all(self.ha_conf_dir, self.custom_url)
+        self.pyupdate.update_all(self.ha_conf_dir, self.show_installable,
+                                 self.custom_url)
         information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
                                                     self.show_installable,
                                                     self.custom_url)
