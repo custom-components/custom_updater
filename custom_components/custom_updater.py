@@ -10,7 +10,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-VERSION = '3.1.5'
+VERSION = '3.1.6'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ class CustomCards():
         self.show_installable = config_show_installable
         self.cache_versions()
 
-    def cache_versions(self):
+    def cache_versions(self, now=None):
         """Cache."""
         information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
                                                     self.show_installable,
@@ -175,7 +175,7 @@ class CustomComponents():
         self.show_installable = config_show_installable
         self.cache_versions()
 
-    def cache_versions(self):
+    def cache_versions(self, now=None):
         """Cache."""
         information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
                                                     self.show_installable,
@@ -217,7 +217,7 @@ class CustomPythonScripts():
         self.show_installable = config_show_installable
         self.cache_versions()
 
-    def cache_versions(self):
+    def cache_versions(self, now=None):
         """Cache."""
         information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
                                                     self.show_installable,
