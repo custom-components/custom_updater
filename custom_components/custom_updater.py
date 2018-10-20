@@ -10,11 +10,11 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-VERSION = '3.1.7'
+VERSION = '3.1.8'
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyupdate==0.2.15']
+REQUIREMENTS = ['pyupdate==0.2.16']
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
