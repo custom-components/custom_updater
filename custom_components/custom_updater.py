@@ -10,7 +10,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 
-VERSION = '3.1.8'
+VERSION = '3.1.9'
 
 _LOGGER = logging.getLogger(__name__)
 
