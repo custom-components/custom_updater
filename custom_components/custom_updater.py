@@ -6,19 +6,22 @@ https://github.com/custom-components/custom_updater
 """
 import logging
 from datetime import timedelta
+from aiohttp import web
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
+from homeassistant.components.http import HomeAssistantView
 
-VERSION = '3.1.12'
+VERSION = '4.0.0'
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyupdate==0.2.21']
+REQUIREMENTS = ['pyupdate==0.2.23']
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
 CONF_SHOW_INSTALLABLE = 'show_installable'
+CONF_MODE = 'mode'
 CONF_CARD_CONFIG_URLS = 'card_urls'
 CONF_COMPONENT_CONFIG_URLS = 'component_urls'
 CONF_PYTHON_SCRIPT_CONFIG_URLS = 'python_script_urls'
@@ -37,6 +40,7 @@ CONFIG_SCHEMA = vol.Schema({
             vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_HIDE_SENSOR, default=False): cv.boolean,
         vol.Optional(CONF_SHOW_INSTALLABLE, default=False): cv.boolean,
+        vol.Optional(CONF_MODE, default='yaml'): cv.string,
         vol.Optional(CONF_CARD_CONFIG_URLS, default=[]):
             vol.All(cv.ensure_list, [cv.url]),
         vol.Optional(CONF_COMPONENT_CONFIG_URLS, default=[]):
@@ -49,6 +53,7 @@ CONFIG_SCHEMA = vol.Schema({
 
 def setup(hass, config):
     """Set up this component."""
+    conf_mode = config[DOMAIN][CONF_MODE]
     conf_track = config[DOMAIN][CONF_TRACK]
     conf_hide_sensor = config[DOMAIN][CONF_HIDE_SENSOR]
     config_show_installabe = config[DOMAIN][CONF_SHOW_INSTALLABLE]
@@ -62,7 +67,7 @@ def setup(hass, config):
     if 'cards' in conf_track:
         card_controller = CustomCards(hass,
                                       conf_hide_sensor, conf_card_urls,
-                                      config_show_installabe)
+                                      config_show_installabe, conf_mode)
         track_time_interval(hass, card_controller.cache_versions, INTERVAL)
     if 'components' in conf_track:
         components_controller = CustomComponents(hass,
@@ -120,24 +125,27 @@ class CustomCards():
     # pylint: disable=too-many-instance-attributes
 
     def __init__(self, hass, conf_hide_sensor, conf_card_urls,
-                 config_show_installable):
+                 config_show_installable, conf_mode):
         """Initialize."""
         from pyupdate.ha_custom import custom_cards
         self.pyupdate = custom_cards
         self.hass = hass
         self.ha_conf_dir = str(hass.config.path())
         self.data = {}
+        self.mode = conf_mode
         self.updatable = 0
         self.hidden = conf_hide_sensor
         self.custom_url = conf_card_urls
         self.show_installable = config_show_installable
+        self.pyupdate.init_local_data(
+            self.ha_conf_dir, self.mode, conf_card_urls)
+        self.serve_dynamic_files()
         self.cache_versions()
 
     def cache_versions(self, now=None):
         """Cache."""
-        information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
-                                                    self.show_installable,
-                                                    self.custom_url)
+        information = self.pyupdate.get_sensor_data(
+            self.ha_conf_dir, self.mode, self.show_installable, self.custom_url)
         state = int(information[1])
         attributes = information[0]
         attributes['hidden'] = self.hidden
@@ -145,11 +153,10 @@ class CustomCards():
 
     def update_all(self):
         """Update all cards."""
-        self.pyupdate.update_all(self.ha_conf_dir, self.show_installable,
-                                 self.custom_url)
-        information = self.pyupdate.get_sensor_data(self.ha_conf_dir,
-                                                    self.show_installable,
-                                                    self.custom_url)
+        self.pyupdate.update_all(
+            self.ha_conf_dir, self.mode, self.show_installable, self.custom_url)
+        information = self.pyupdate.get_sensor_data(
+            self.ha_conf_dir, self.mode, self.show_installable, self.custom_url)
         state = int(information[1])
         attributes = information[0]
         attributes['hidden'] = self.hidden
@@ -158,6 +165,10 @@ class CustomCards():
     def install(self, element):
         """Install single card."""
         self.pyupdate.install(self.ha_conf_dir, element, self.custom_url)
+
+    def serve_dynamic_files(self):
+        """Serve dynamic cardfiles."""
+        self.hass.http.register_view(CustomCardsView(self.ha_conf_dir))
 
 
 class CustomComponents():
@@ -256,3 +267,29 @@ class CustomPythonScripts():
     def install(self, element):
         """Install single python_script."""
         self.pyupdate.install(self.ha_conf_dir, element, self.custom_url)
+
+
+
+class CustomCardsView(HomeAssistantView):
+    """View to return a custom_card file."""
+
+    requires_auth = False
+
+    url = r"/customcards/{path:.+}"
+    name = "customcards"
+
+    def __init__(self, hadir):
+        """Initialize custom_card view."""
+        self.hadir = hadir
+
+
+    async def get(self, request, path):
+        """Retrieve custom_card."""
+        msg = "Serving /customcards/{path} from /www/{path}".format(path=path)
+        _LOGGER.debug(msg)
+
+        if '?' in path:
+            path = path.split('?')[0]
+        file = "{}/www/{}".format(self.hadir, path)
+        resp = web.FileResponse(file)
+        return resp
