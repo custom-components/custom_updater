@@ -31,14 +31,3 @@ jobs:
       name: "Linting with flake8"
       python: "3.6"
       script: find . -name \*.py -exec flake8 {} +
-
-    # Load component with Home Assistant
-    - stage: load
-      name: "Load component/platform in Home Assistant"
-      install: pip install homeassistant
-      python: "3.6"
-      script:
-        - hass -c . --daemon
-        - sleep 60
-        - cat ./home-assistant.log
-        - if grep -q 'ERROR' ./home-assistant.log; then echo "There was an error starting Home Assistant"; exit 1; fi

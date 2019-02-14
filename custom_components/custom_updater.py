@@ -12,11 +12,11 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 from homeassistant.components.http import HomeAssistantView
 
-VERSION = '4.0.0'
+VERSION = '4.0.1'
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyupdate==0.2.23']
+REQUIREMENTS = ['pyupdate==0.2.25']
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
@@ -63,6 +63,8 @@ def setup(hass, config):
 
     _LOGGER.info('if you have ANY issues with this, please report them here:'
                  ' https://github.com/custom-components/custom_updater')
+
+    _LOGGER.debug('Version %s', VERSION)
 
     if 'cards' in conf_track:
         card_controller = CustomCards(hass,
