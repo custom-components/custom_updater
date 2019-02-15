@@ -12,7 +12,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 from homeassistant.components.http import HomeAssistantView
 
-VERSION = '4.0.1'
+VERSION = '4.0.3'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,9 +34,11 @@ ATTR_CARD = 'card'
 ATTR_COMPONENT = 'component'
 ATTR_ELEMENT = 'element'
 
+DEFAULT_TRACK = ['components', 'cards']
+
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
-        vol.Optional(CONF_TRACK, default=['components']):
+        vol.Optional(CONF_TRACK, default=DEFAULT_TRACK):
             vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_HIDE_SENSOR, default=False): cv.boolean,
         vol.Optional(CONF_SHOW_INSTALLABLE, default=False): cv.boolean,
@@ -269,7 +271,6 @@ class CustomPythonScripts():
     def install(self, element):
         """Install single python_script."""
         self.pyupdate.install(self.ha_conf_dir, element, self.custom_url)
-
 
 
 class CustomCardsView(HomeAssistantView):
