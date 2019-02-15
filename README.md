@@ -1,6 +1,7 @@
 # Custom Updater 
 
-**NB!: Version `4.0.0` have some breaking changes for lovelace, read the release notes!**
+**NB!: Version `4.0.0` have some breaking changes for lovelace, read the release notes!**  
+https://github.com/custom-components/custom_updater/releases/tag/4.0.0
 
 **This will not be able to be updated from it self for a while du to the changes related to lovelace**
 
