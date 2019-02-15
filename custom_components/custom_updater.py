@@ -16,7 +16,7 @@ VERSION = '4.0.1'
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyupdate==0.2.25']
+REQUIREMENTS = ['pyupdate==0.2.26']
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
