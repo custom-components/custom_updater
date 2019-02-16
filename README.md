@@ -1,11 +1,11 @@
-# Custom Updater 
+# Custom Updater
 
-**NB!: Version `4.0.0` have some breaking changes for lovelace, read the release notes!**  
-https://github.com/custom-components/custom_updater/releases/tag/4.0.0
+_A component which allows you to track and update custom cards/components and python_scripts._ 
 
-**This will not be able to be updated from it self for a while du to the changes related to lovelace**
+## If you are upgrading from before `4.0.0` please read these two links:
 
-_A component which allows you to track and update custom cards/components and python_scripts._  
+- https://github.com/custom-components/custom_updater/releases/tag/4.0.0
+- https://github.com/custom-components/custom_updater/wiki/How-it-works
 
 ***
 
@@ -13,7 +13,7 @@ _A component which allows you to track and update custom cards/components and py
 
 ***
 
-For installation and more info about this component have a look at the [Wiki.](https://github.com/custom-components/custom_updater/wiki/Installation)
+## For installation and more info about this component have a look at the [Wiki.](https://github.com/custom-components/custom_updater/wiki/Installation)
 
 ***
 

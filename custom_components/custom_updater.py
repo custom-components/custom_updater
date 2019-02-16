@@ -7,6 +7,7 @@ https://github.com/custom-components/custom_updater
 import logging
 from datetime import timedelta
 from aiohttp import web
+import os.path
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
@@ -16,7 +17,7 @@ VERSION = '4.0.4'
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyupdate==0.2.27']
+REQUIREMENTS = ['pyupdate==0.2.28']
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
@@ -67,6 +68,7 @@ def setup(hass, config):
                  ' https://github.com/custom-components/custom_updater')
 
     _LOGGER.debug('Version %s', VERSION)
+    _LOGGER.debug('Mode %s', conf_mode)
 
     if 'cards' in conf_track:
         card_controller = CustomCards(hass,
@@ -288,11 +290,14 @@ class CustomCardsView(HomeAssistantView):
 
     async def get(self, request, path):
         """Retrieve custom_card."""
-        msg = "Serving /customcards/{path} from /www/{path}".format(path=path)
-        _LOGGER.debug(msg)
-
         if '?' in path:
             path = path.split('?')[0]
         file = "{}/www/{}".format(self.hadir, path)
-        resp = web.FileResponse(file)
-        return resp
+        if os.path.exists(file):
+            msg = "Serving /customcards/{path} from /www/{path}".format(path=path)
+            _LOGGER.debug(msg)
+            resp = web.FileResponse(file)
+            return resp
+        else:
+            _LOGGER.error("Tried to serve up '%s' but it does not exist", file)
+            return None
