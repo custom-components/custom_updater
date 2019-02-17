@@ -16,7 +16,7 @@ When an issue gets closed I will add a comment to it stating what's missing so y
 -->
 
 ## Version of the custom_component
-<!-- If you are not using the newest version, download and try that before opening a issue-->
+<!-- If you are not using the newest version, download and try that before opening an issue-->
 
 ## Describe the bug
 A clear and concise description of what the bug is.
