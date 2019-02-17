@@ -13,11 +13,11 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.event import track_time_interval
 from homeassistant.components.http import HomeAssistantView
 
-VERSION = '4.0.4'
+VERSION = '4.0.5'
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyupdate==0.2.28']
+REQUIREMENTS = ['pyupdate==0.2.29']
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
