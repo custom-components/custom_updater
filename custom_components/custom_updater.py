@@ -14,11 +14,11 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.event import async_track_time_interval
 
-VERSION = '4.2.5'
+VERSION = '4.2.6'
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyupdate==1.2.8']
+REQUIREMENTS = ['pyupdate==1.2.9']
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
@@ -308,6 +308,9 @@ class CustomCardsView(HomeAssistantView):
                 path=path)
             _LOGGER.debug(msg)
             resp = web.FileResponse(file)
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
             return resp
         else:
             _LOGGER.error("Tried to serve up '%s' but it does not exist", file)
