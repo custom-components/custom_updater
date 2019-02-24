@@ -14,11 +14,11 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.event import async_track_time_interval
 
-VERSION = '4.2.6'
+VERSION = '4.2.7'
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyupdate==1.2.9']
+REQUIREMENTS = ['pyupdate==1.2.10']
 
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
@@ -296,7 +296,6 @@ class CustomCardsView(HomeAssistantView):
     def __init__(self, hadir):
         """Initialize custom_card view."""
         self.hadir = hadir
-
 
     async def get(self, request, path):
         """Retrieve custom_card."""
