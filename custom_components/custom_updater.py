@@ -14,7 +14,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.event import async_track_time_interval
 
-VERSION = '4.2.10'
+VERSION = '4.2.11'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,7 +23,6 @@ REQUIREMENTS = ['pyupdate==1.3.1']
 CONF_TRACK = 'track'
 CONF_HIDE_SENSOR = 'hide_sensor'
 CONF_SHOW_INSTALLABLE = 'show_installable'
-CONF_MODE = 'mode'
 CONF_CARD_CONFIG_URLS = 'card_urls'
 CONF_COMPONENT_CONFIG_URLS = 'component_urls'
 CONF_PYTHON_SCRIPT_CONFIG_URLS = 'python_script_urls'
@@ -44,7 +43,6 @@ CONFIG_SCHEMA = vol.Schema({
             vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(CONF_HIDE_SENSOR, default=False): cv.boolean,
         vol.Optional(CONF_SHOW_INSTALLABLE, default=False): cv.boolean,
-        vol.Optional(CONF_MODE, default='yaml'): cv.string,
         vol.Optional(CONF_CARD_CONFIG_URLS, default=[]):
             vol.All(cv.ensure_list, [cv.url]),
         vol.Optional(CONF_COMPONENT_CONFIG_URLS, default=[]):
@@ -57,7 +55,7 @@ CONFIG_SCHEMA = vol.Schema({
 
 async def async_setup(hass, config):
     """Set up this component."""
-    conf_mode = config[DOMAIN][CONF_MODE]
+    conf_mode = config.get('lovelace', {}).get('mode', 'storage')
     conf_track = config[DOMAIN][CONF_TRACK]
     conf_hide_sensor = config[DOMAIN][CONF_HIDE_SENSOR]
     conf_card_urls = config[DOMAIN][CONF_CARD_CONFIG_URLS]
@@ -69,7 +67,7 @@ async def async_setup(hass, config):
 
     _LOGGER.debug('Version %s', VERSION)
     _LOGGER.debug('Mode %s', conf_mode)
-    
+
     if conf_mode == 'yaml':
         if not os.path.exists("{}/ui-lovelace.yaml".format(str(hass.config.path()))):
             _LOGGER.warning(
