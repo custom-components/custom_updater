@@ -14,7 +14,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.event import async_track_time_interval
 
-VERSION = '4.2.9'
+VERSION = '4.2.10'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +69,12 @@ async def async_setup(hass, config):
 
     _LOGGER.debug('Version %s', VERSION)
     _LOGGER.debug('Mode %s', conf_mode)
+    
+    if conf_mode == 'yaml':
+        if not os.path.exists("{}/ui-lovelace.yaml".format(str(hass.config.path()))):
+            _LOGGER.warning(
+                "Configured to run with yaml mode but ui-lovelace.yaml does not exist, assuming storage is used")
+            conf_mode = 'storage'
 
     if 'cards' in conf_track:
         card_controller = CustomCards(
