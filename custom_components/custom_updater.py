@@ -118,7 +118,7 @@ async def async_setup(hass, config):
         if 'components' in conf_track:
             await components_controller.update_all()
         if 'python_scripts' in conf_track:
-            python_scripts_controller.update_all()
+            await python_scripts_controller.update_all()
 
     async def install_service(call):
         """Install single component/card."""
