@@ -46,7 +46,7 @@ A clear and concise description of what the bug is.
 ```
 
 ## Debug log
-<!-- https://github.com/custom-components/custom_updater/wiki/Debug -->
+<!-- https://custom-components.github.io/custom_updater/Debug -->
 
 ```text
 

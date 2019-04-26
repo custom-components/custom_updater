@@ -1,3 +1,3 @@
-* [custom_cards](https://github.com/custom-components/custom_updater/wiki/cards)
-* [custom_components](https://github.com/custom-components/custom_updater/wiki/components)
-* [python_scripts](https://github.com/custom-components/custom_updater/wiki/python_scripts)
+* [custom_cards](https://custom-components.github.io/custom_updater/cards)
+* [custom_components](https://custom-components.github.io/custom_updater/components)
+* [python_scripts](https://custom-components.github.io/custom_updater/python_scripts)
