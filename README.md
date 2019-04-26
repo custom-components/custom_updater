@@ -2,18 +2,16 @@
 
 _A component which allows you to track and update custom cards/components and python_scripts._ 
 
-## If you are upgrading from before `4.0.0` please read these two links:
+## `5.0.0` Causes major breaking changes
+this is due to the restructuring to suit Home Assistant's "Great Migration" at version 0.92
 
-- https://github.com/custom-components/custom_updater/releases/tag/4.0.0
-- https://github.com/custom-components/custom_updater/wiki/How-it-works
-
-***
+### This component has been disabled from updating itself for a while due to this change, I will add this back at a later time
 
 **To get the best use for this component, use it together with the [tracker-card](https://github.com/custom-cards/tracker-card)**
 
 ***
 
-## For installation and more info about this component have a look at the [Wiki.](https://github.com/custom-components/custom_updater/wiki/Installation)
+## For installation and updating and for more info about this component have a look at the [Wiki.](https://github.com/custom-components/custom_updater/wiki/Installation)
 
 ***
 
