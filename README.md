@@ -11,7 +11,7 @@ this is due to the restructuring to suit Home Assistant's "Great Migration" at v
 
 ***
 
-## For installation and updating and for more info about this component have a look at the [Wiki.](https://custom-components.github.io/custom_updater/Installation)
+## For installation and updating and for more info about this component have a look at the ["docs".](https://custom-components.github.io/custom_updater/Installation)
 
 ***
 
