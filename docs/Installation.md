@@ -72,4 +72,4 @@ _This part are considered advanced configuration, this option is here to provide
 
 Home Assistant will fail configuration validation the first time after you add this, this is because it does not know of it and it's capabilities (config options)
 
-see the [How it works page of this wiki] (https://custom-components.github.io/custom_updater/How-it-works) for details on how to set up your custom elememnts.
+see the [How it works page of this wiki](https://custom-components.github.io/custom_updater/How-it-works) for details on how to set up your custom elements.
