@@ -5,8 +5,6 @@ _A component which allows you to track and update custom cards/components and py
 ## `5.0.0` Causes major breaking changes
 this is due to the restructuring to suit Home Assistant's "Great Migration" at version 0.92
 
-### This component has been disabled from updating itself for a while due to this change, I will add this back at a later time
-
 **To get the best use for this component, use it together with the [tracker-card](https://github.com/custom-cards/tracker-card)**
 
 ***
