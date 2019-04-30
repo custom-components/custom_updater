@@ -3,7 +3,7 @@ If you are upgrading from a previous version of custom_updater, DELETE `<config 
 # Step 1
 
 Create a directory called `custom_updater` in the `<config directory>/custom_components/` directory on your Home Assistant instance.
-Install this component by copying the files in [`/custom_components/custom_updater/`](https://raw.githubusercontent.com/custom-components/custom_updater/master/custom_components/custom_updater/__init__.py and https://raw.githubusercontent.com/custom-components/custom_updater/master/custom_components/custom_updater/services.yaml) from this repo into the new `<config directory>/custom_components/custom_updater/` directory you just created
+Install this component by copying the files in [`/custom_components/custom_updater/`](https://github.com/custom-components/custom_updater/tree/master/custom_components/custom_updater): [`__init__.py`](https://raw.githubusercontent.com/custom-components/custom_updater/master/custom_components/custom_updater/__init__.py) and [`services.yaml`](https://raw.githubusercontent.com/custom-components/custom_updater/master/custom_components/custom_updater/services.yaml) from this repo into the new `<config directory>/custom_components/custom_updater/` directory you just created
 
 # Step 2
 
