@@ -296,7 +296,6 @@ class CustomCardsView(HomeAssistantView):
 
     def __init__(self, hadir):
         """Initialize custom_card view."""
-        _LOGGER.critical("%s, %s", self.url, self.name)
         self.hadir = hadir
 
     async def get(self, request, path):
