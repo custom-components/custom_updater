@@ -2,14 +2,21 @@
 
 _A component which allows you to track and update custom cards/components and python_scripts._ 
 
-## `5.0.0` Causes major breaking changes
-this is due to the restructuring to suit Home Assistant's "Great Migration" at version 0.92
+## Partial deprecation.
 
-**To get the best use for this component, use it together with the [tracker-card](https://github.com/custom-cards/tracker-card)**
+Continued development for this custom_component have now come to a stop.
+There will be no new features added to this, and only blocking major issues will be fixed.
+The service that generates the json files [here](https://github.com/custom-cards/information/blob/master/repos.json) and [here](https://github.com/custom-components/information/blob/master/repos.json) will shut down later 2019 or early 2020 (more details will be posted later.)
+
+Why?, you can read most of my issues with it here https://github.com/custom-components/custom_updater/issues/117
+
+What now? [HACS](https://github.com/custom-components/hacs)  
+HACS are not a full replacement, but it replaces most of the functionality and support, and then some, check it out :)
+
 
 ***
 
-## For installation and updating and for more info about this component have a look at the ["docs".](https://custom-components.github.io/custom_updater/Installation)
+ For installation and updating and for more info about this component have a look at the ["docs".](https://custom-components.github.io/custom_updater/Installation)
 
 ***
 
