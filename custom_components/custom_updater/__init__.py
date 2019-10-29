@@ -15,7 +15,7 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.event import async_track_time_interval
 
-VERSION = '5.1.1'
+VERSION = '6.0.0'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,12 +63,12 @@ async def async_setup(hass, config):
     conf_component_urls = config[DOMAIN][CONF_COMPONENT_CONFIG_URLS]
     conf_py_script_urls = config[DOMAIN][CONF_PYTHON_SCRIPT_CONFIG_URLS]
 
-    _LOGGER.info('if you have ANY issues with this, please report them here:'
-                 ' https://github.com/custom-components/custom_updater')
-
     _LOGGER.debug('Version %s', VERSION)
     _LOGGER.debug('Mode %s', conf_mode)
-    
+
+    _LOGGER.warning("This integration is deprecated, and is no longer maintained."
+                     "As an alternative have a look at HACS https://hacs.xyz")
+
     hass.http.register_view(CustomCardsView(str(hass.config.path())))
 
     if conf_mode == 'yaml':
