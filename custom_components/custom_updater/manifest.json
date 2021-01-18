@@ -1,7 +1,7 @@
 {
   "domain": "custom_updater",
   "name": "custom_updater",
-  "documentation": "https://custom-components.github.io/custom_updater/Installation",
+  "documentation": "",
   "dependencies": [],
   "codeowners": ["@ludeeus"],
   "requirements": ["pyupdate==1.4.0"]

@@ -13,9 +13,10 @@ from aiohttp import web
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.http import HomeAssistantView
+from homeassistant.util import sanitize_path
 from homeassistant.helpers.event import async_track_time_interval
 
-VERSION = '6.0.0'
+VERSION = '6.0.1'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ async def async_setup(hass, config):
     _LOGGER.debug('Version %s', VERSION)
     _LOGGER.debug('Mode %s', conf_mode)
 
-    _LOGGER.warning("This integration is deprecated, and is no longer maintained."
+    _LOGGER.error("This integration is deprecated, and is no longer maintained."
                      "As an alternative have a look at HACS https://hacs.xyz")
 
     hass.http.register_view(CustomCardsView(str(hass.config.path())))
@@ -300,6 +301,10 @@ class CustomCardsView(HomeAssistantView):
 
     async def get(self, request, path):
         """Retrieve custom_card."""
+        _LOGGER.error("This integration is deprecated, and is no longer maintained."
+                        "As an alternative have a look at HACS https://hacs.xyz")
+        if path != sanitize_path(path):
+            raise web.HTTPBadRequest
         if '?' in path:
             path = path.split('?')[0]
         file = "{}/www/{}".format(self.hadir, path)

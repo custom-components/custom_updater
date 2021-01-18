@@ -1,4 +1,4 @@
-# Custom Updater [DEPRECATED]
+# Custom Updater [DEPRECATED!]
 
 This integration is deprecated and will no longer be maintained.
 
